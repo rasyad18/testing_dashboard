@@ -335,7 +335,7 @@ body {
 .dt-subtitle { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; }
 .dt-scroll { width: 100%; overflow-x: auto; border-radius: 8px; }
 .dt { width: 100%; border-collapse: collapse; font-family: 'Nunito', 'Inter', sans-serif; font-size: 13px; min-width: 100%; }
-.dt thead th { background: var(--accent); color: #FFFFFF; font-weight: 700; text-align: center; padding: 10px 14px; border: none; font-size: 13px; }
+.dt thead th { background: var(--accent); color: #FFFFFF; font-weight: 700; text-align: center; padding: 10px 14px; border: 1px solid rgba(255, 255, 255, 0.18); font-size: 13px; }
 .dt thead th.dt-akun-head { width: 110px; min-width: 110px; }
 .dt thead th.dt-label-head { text-align: left; min-width: 280px; }
 .dt tbody td { padding: 8px 14px; border: none; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; background: var(--bg-card); }
@@ -1874,11 +1874,44 @@ function buildDataTables() {
   function findMetric(k) { return METRICS.find(m => m.key === k); }
 
   // Header
-  const headerCols = ['<th class="dt-akun-head">Akun</th>', '<th class="dt-label-head">URAIAN</th>', '<th>Realisasi</th>'];
-  if (showBudget) { headerCols.push('<th>Anggaran</th>'); headerCols.push('<th>Pencapaian</th>'); }
-  if (showCmp) { headerCols.push('<th>Pembanding</th>'); headerCols.push('<th>Δ %</th>'); }
-  const colspan = headerCols.length;
-  const headerRowHTML = `<tr>${headerCols.join('')}</tr>`;
+  let colspan = 3;
+  if (showBudget) colspan += 2;
+  if (showCmp) {
+    colspan += showBudget ? 5 : 2;
+  }
+
+  let headerRowHTML = '';
+  if (showCmp) {
+    const analysisColspan = showBudget ? 3 : 1;
+    const compareColspan = showBudget ? 3 : 1;
+    const deltaColspan = showBudget ? 2 : 1;
+    headerRowHTML = `
+      <tr>
+        <th rowspan="2" class="dt-akun-head" style="vertical-align: middle;">Akun</th>
+        <th rowspan="2" class="dt-label-head" style="vertical-align: middle;">URAIAN</th>
+        <th colspan="${analysisColspan}">Periode Analisis</th>
+        <th colspan="${compareColspan}">Periode Pembanding</th>
+        <th colspan="${deltaColspan}">Selisih (Δ)</th>
+      </tr>
+      <tr>
+        <th>Realisasi</th>
+        ${showBudget ? '<th>Anggaran</th><th>Pencapaian</th>' : ''}
+        <th>Realisasi</th>
+        ${showBudget ? '<th>Anggaran</th><th>Pencapaian</th>' : ''}
+        <th>Δ Realisasi</th>
+        ${showBudget ? '<th>Δ Anggaran</th>' : ''}
+      </tr>
+    `;
+  } else {
+    headerRowHTML = `
+      <tr>
+        <th class="dt-akun-head">Akun</th>
+        <th class="dt-label-head">URAIAN</th>
+        <th>Realisasi</th>
+        ${showBudget ? '<th>Anggaran</th><th>Pencapaian</th>' : ''}
+      </tr>
+    `;
+  }
 
   let bodyHTML = '';
   for (const r of rows) {
@@ -1928,11 +1961,36 @@ function buildDataTables() {
     }
     if (showCmp) {
       const pv = r.key ? sumMetric(cmp, r.key) : 0;
+      const pbv = r.key ? sumMetric(cmp, r.key + '_b') : 0;
+
+      // 1. Realisasi Pembanding
+      cells.push(`<td>${fmt(pv)}</td>`);
+
+      // 2. Anggaran Pembanding & Pencapaian Pembanding (if showBudget is true)
+      if (showBudget) {
+        cells.push(`<td>${pbv > 0 ? fmt(pbv) : '—'}</td>`);
+        if (pbv > 0) {
+          const p = (pv / pbv) * 100;
+          const pCls = p >= 100 ? 'pct-up' : (p < 80 ? 'pct-down' : 'pct-warn');
+          cells.push(`<td class="${pCls}">${p.toFixed(1)}%</td>`);
+        } else {
+          cells.push('<td>—</td>');
+        }
+      }
+
+      // 3. Delta Realisasi %
       const p = pct(cv, pv);
       const pCls = p == null ? '' : (p >= 0 ? 'pct-up' : 'pct-down');
       const pTxt = p == null ? '—' : (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
-      cells.push(`<td>${fmt(pv)}</td>`);
       cells.push(`<td class="${pCls}">${pTxt}</td>`);
+
+      // 4. Delta Anggaran % (if showBudget is true)
+      if (showBudget) {
+        const pB = pct(bv, pbv);
+        const pBCls = pB == null ? '' : (pB >= 0 ? 'pct-up' : 'pct-down');
+        const pBTxt = pB == null ? '—' : (pB >= 0 ? '+' : '') + pB.toFixed(1) + '%';
+        cells.push(`<td class="${pBCls}">${pBTxt}</td>`);
+      }
     }
     bodyHTML += `<tr class="${trCls}">${cells.join('')}</tr>`;
   }
