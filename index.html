@@ -243,8 +243,10 @@ body {
 .kpi-secondary-label .dot { display: inline-block; width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
 .kpi-secondary-label .dot.anggaran { background: var(--anggaran); }
 .kpi-secondary-label .dot.pembanding { background: transparent; border: 1.5px solid var(--text-dim); }
+.kpi-secondary-label .dot.pembanding-anggaran { background: transparent; border: 1.5px dashed var(--anggaran); }
 .kpi-anggaran-block .kpi-secondary-label { color: var(--anggaran); }
 .kpi-pembanding-block .kpi-secondary-label { color: var(--text-dim); }
+.kpi-pembanding-anggaran-block .kpi-secondary-label { color: #B97500; }
 .kpi-secondary-val { color: var(--text); font-family: 'Nunito', sans-serif; font-weight: 600; font-size: 19px; letter-spacing: -0.3px; line-height: 1.15; word-break: break-word; }
 .kpi-secondary-val .rp-anggaran { color: var(--anggaran); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; margin-right: 3px; }
 .kpi-secondary-val .rp-pembanding { color: var(--text-dim); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; margin-right: 3px; }
@@ -1066,59 +1068,109 @@ function renderKPICard(c) {
   const showReal = state.display.real;
   const showBudget = state.display.budget;
   const hasBudget = c.budget !== undefined && c.budget !== null && c.budget !== 0;
+  const hasPrevBudget = c.prevBudget !== undefined && c.prevBudget !== null && c.prevBudget !== 0;
   const showCompare = state.cmp.enabled && c.prev !== undefined && c.prev !== null;
 
-  // Main value (Realisasi)
-  const mainFmt = c.isCurrency
-    ? `<span class="kpi-currency">Rp</span>${FMT_FULL(c.curr || 0)}`
-    : `${FMT_FULL(c.curr || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+  // 1. If BOTH are shown:
+  if (showReal && showBudget) {
+    const mainFmt = c.isCurrency
+      ? `<span class="kpi-currency">Rp</span>${FMT_FULL(c.curr || 0)}`
+      : `${FMT_FULL(c.curr || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
 
-  // Anggaran block value
-  const budgetFmt = c.isCurrency
-    ? `<span class="rp-anggaran">Rp</span>${FMT_FULL(c.budget || 0)}`
-    : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
-
-  // Pembanding block value
-  const prevFmt = c.isCurrency
-    ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
-    : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
-
-  // Anggaran block (gaya PDA: label + value + pencapaian)
-  const anggaranBlock = (hasBudget && showBudget) ? `
-    <div class="kpi-secondary-block kpi-anggaran-block">
-      <div class="kpi-secondary-label"><span class="dot anggaran"></span>Anggaran</div>
-      <div class="kpi-secondary-val">${budgetFmt}</div>
-      <div class="kpi-mini-compare">${achievementHTML(c.curr, c.budget)}<span class="kpi-vs">pencapaian</span></div>
-    </div>` : '';
-
-  // Pembanding block (gaya PDA: label + value + delta)
-  const pembandingBlock = showCompare ? `
-    <div class="kpi-secondary-block kpi-pembanding-block">
-      <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding</div>
-      <div class="kpi-secondary-val">${prevFmt}</div>
-      <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
-    </div>` : '';
-
-  // Jika user matikan "Realisasi" — swap main value ke Anggaran
-  if (hasBudget && !showReal && showBudget) {
-    const budgetAsMain = c.isCurrency
-      ? `<span class="kpi-currency" style="color:var(--anggaran)">Rp</span>${FMT_FULL(c.budget || 0)}`
+    const budgetFmt = c.isCurrency
+      ? `<span class="rp-anggaran">Rp</span>${FMT_FULL(c.budget || 0)}`
       : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const anggaranBlock = hasBudget ? `
+      <div class="kpi-secondary-block kpi-anggaran-block">
+        <div class="kpi-secondary-label"><span class="dot anggaran"></span>Anggaran</div>
+        <div class="kpi-secondary-val">${budgetFmt}</div>
+        <div class="kpi-mini-compare">${achievementHTML(c.curr, c.budget)}<span class="kpi-vs">pencapaian</span></div>
+      </div>` : '';
+
+    const prevFmt = c.isCurrency
+      ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
+      : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevRealBlock = showCompare ? `
+      <div class="kpi-secondary-block kpi-pembanding-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding Realisasi</div>
+        <div class="kpi-secondary-val">${prevFmt}</div>
+        <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
+      </div>` : '';
+
+    const prevBudgetFmt = c.isCurrency
+      ? `<span class="rp-anggaran" style="color:var(--anggaran); opacity:0.8;">Rp</span>${FMT_FULL(c.prevBudget || 0)}`
+      : `${FMT_FULL(c.prevBudget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevBudgetBlock = (showCompare && hasPrevBudget) ? `
+      <div class="kpi-secondary-block kpi-pembanding-anggaran-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding-anggaran"></span>Pembanding Anggaran</div>
+        <div class="kpi-secondary-val">${prevBudgetFmt}</div>
+        <div class="kpi-mini-compare">${achievementHTML(c.prev, c.prevBudget)}<span class="kpi-vs">pencapaian</span></div>
+      </div>` : '';
+
     return `
       <div class="kpi-card ${c.cls || ''}">
-        <div class="kpi-label">${c.label} <span style="color:var(--anggaran);font-weight:700;">· ANGGARAN</span></div>
-        <div class="kpi-value">${budgetAsMain}</div>
-        ${pembandingBlock}
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value">${mainFmt}</div>
+        ${anggaranBlock}
+        ${prevRealBlock}
+        ${prevBudgetBlock}
       </div>`;
   }
 
-  return `
-    <div class="kpi-card ${c.cls || ''}">
-      <div class="kpi-label">${c.label}</div>
-      <div class="kpi-value">${mainFmt}</div>
-      ${anggaranBlock}
-      ${pembandingBlock}
-    </div>`;
+  // 2. If ONLY Realisasi is shown:
+  if (showReal && !showBudget) {
+    const mainFmt = c.isCurrency
+      ? `<span class="kpi-currency">Rp</span>${FMT_FULL(c.curr || 0)}`
+      : `${FMT_FULL(c.curr || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevFmt = c.isCurrency
+      ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
+      : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevRealBlock = showCompare ? `
+      <div class="kpi-secondary-block kpi-pembanding-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding Realisasi</div>
+        <div class="kpi-secondary-val">${prevFmt}</div>
+        <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
+      </div>` : '';
+
+    return `
+      <div class="kpi-card ${c.cls || ''}">
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value">${mainFmt}</div>
+        ${prevRealBlock}
+      </div>`;
+  }
+
+  // 3. If ONLY Anggaran is shown (swap main to budget):
+  if (!showReal && showBudget) {
+    const mainFmt = c.isCurrency
+      ? `<span class="kpi-currency" style="color:var(--anggaran)">Rp</span>${FMT_FULL(c.budget || 0)}`
+      : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevBudgetFmt = c.isCurrency
+      ? `<span class="rp-anggaran" style="color:var(--anggaran); opacity:0.8;">Rp</span>${FMT_FULL(c.prevBudget || 0)}`
+      : `${FMT_FULL(c.prevBudget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevBudgetBlock = (showCompare && hasPrevBudget) ? `
+      <div class="kpi-secondary-block kpi-pembanding-anggaran-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding-anggaran"></span>Pembanding Anggaran</div>
+        <div class="kpi-secondary-val">${prevBudgetFmt}</div>
+        <div class="kpi-mini-compare">${deltaHTML(pct(c.budget, c.prevBudget))}<span class="kpi-vs">vs pembanding</span></div>
+      </div>` : '';
+
+    return `
+      <div class="kpi-card ${c.cls || ''}">
+        <div class="kpi-label">${c.label} <span style="color:var(--anggaran);font-weight:700;">· ANGGARAN</span></div>
+        <div class="kpi-value">${mainFmt}</div>
+        ${prevBudgetBlock}
+      </div>`;
+  }
+
+  return `<div class="kpi-card">No Selection</div>`;
 }
 
 // ============ CHART HELPER ============
@@ -1138,20 +1190,23 @@ function renderOverview() {
   const totalPengCur = sumMetric(cur, 'pengTotal') || (sumMetric(cur, 'pengBayar') + sumMetric(cur, 'pengTidakBayar'));
   const totalPengCmp = sumMetric(cmp, 'pengTotal') || (sumMetric(cmp, 'pengBayar') + sumMetric(cmp, 'pengTidakBayar'));
   const totalPengBdg = sumMetric(cur, 'pengTotal_b');
+  const totalPengBdgCmp = sumMetric(cmp, 'pengTotal_b');
   const totalRevCur = sumMetric(cur, 'rev');
   const totalRevCmp = sumMetric(cmp, 'rev');
   const totalRevBdg = sumMetric(cur, 'rev_b');
+  const totalRevBdgCmp = sumMetric(cmp, 'rev_b');
   const arpuCur = totalPengCur > 0 ? totalRevCur / totalPengCur : 0;
   const arpuCmp = totalPengCmp > 0 ? totalRevCmp / totalPengCmp : 0;
   const arpuBdg = totalPengBdg > 0 ? totalRevBdg / totalPengBdg : 0;
+  const arpuBdgCmp = totalPengBdgCmp > 0 ? totalRevBdgCmp / totalPengBdgCmp : 0;
   const days = Math.max(1, daysBetween(ISOToDate(state.cur.start), ISOToDate(state.cur.end)) + 1);
   const daysCmp = Math.max(1, daysBetween(ISOToDate(state.cmp.start || state.cur.start), ISOToDate(state.cmp.end || state.cur.end)) + 1);
 
   const cards = [
-    { cls: '', label: 'TOTAL PENGUNJUNG', curr: totalPengCur, prev: state.cmp.enabled ? totalPengCmp : null, budget: totalPengBdg || null, isCurrency: false, unit: 'orang' },
-    { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: totalRevCur, prev: state.cmp.enabled ? totalRevCmp : null, budget: totalRevBdg || null, isCurrency: true },
-    { cls: 'amber', label: 'ARPU (Avg Revenue/Visitor)', curr: arpuCur, prev: state.cmp.enabled ? arpuCmp : null, budget: arpuBdg || null, isCurrency: true },
-    { cls: 'green', label: 'AVG PENGUNJUNG/HARI', curr: totalPengCur / days, prev: state.cmp.enabled ? totalPengCmp / daysCmp : null, budget: totalPengBdg ? totalPengBdg / days : null, isCurrency: false, unit: 'orang/hari' },
+    { cls: '', label: 'TOTAL PENGUNJUNG', curr: totalPengCur, prev: state.cmp.enabled ? totalPengCmp : null, budget: totalPengBdg || null, prevBudget: state.cmp.enabled ? totalPengBdgCmp : null, isCurrency: false, unit: 'orang' },
+    { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: totalRevCur, prev: state.cmp.enabled ? totalRevCmp : null, budget: totalRevBdg || null, prevBudget: state.cmp.enabled ? totalRevBdgCmp : null, isCurrency: true },
+    { cls: 'amber', label: 'ARPU (Avg Revenue/Visitor)', curr: arpuCur, prev: state.cmp.enabled ? arpuCmp : null, budget: arpuBdg || null, prevBudget: state.cmp.enabled ? arpuBdgCmp : null, isCurrency: true },
+    { cls: 'green', label: 'AVG PENGUNJUNG/HARI', curr: totalPengCur / days, prev: state.cmp.enabled ? totalPengCmp / daysCmp : null, budget: totalPengBdg ? totalPengBdg / days : null, prevBudget: state.cmp.enabled ? (totalPengBdgCmp ? totalPengBdgCmp / daysCmp : null) : null, isCurrency: false, unit: 'orang/hari' },
   ];
   document.getElementById('overviewKpi').innerHTML = cards.map(renderKPICard).join('');
 
@@ -1230,12 +1285,13 @@ function renderPengunjungKpi() {
   const cur = filterRange(state.cur.start, state.cur.end);
   const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
   const b = key => sumMetric(cur, key + '_b') || null;
+  const pb = key => state.cmp.enabled ? (sumMetric(cmp, key + '_b') || null) : null;
   const cards = [
-    { cls: '',     label: 'INDIVIDU BAYAR',   curr: sumMetric(cur, 'pengIndividu'),   prev: state.cmp.enabled ? sumMetric(cmp, 'pengIndividu')   : null, budget: b('pengIndividu'),   unit: 'orang' },
-    { cls: 'deep', label: 'ROMBONGAN',        curr: sumMetric(cur, 'pengRombongan'),  prev: state.cmp.enabled ? sumMetric(cmp, 'pengRombongan')  : null, budget: b('pengRombongan'),  unit: 'orang' },
-    { cls: 'green',label: 'JABODETABEK',      curr: sumMetric(cur, 'pengJabodetabek'),prev: state.cmp.enabled ? sumMetric(cmp, 'pengJabodetabek'):null, budget: b('pengJabodetabek'),unit: 'orang' },
-    { cls: '',     label: 'KHUSUS & LANGG.',  curr: sumMetric(cur, 'pengKhusus'),     prev: state.cmp.enabled ? sumMetric(cmp, 'pengKhusus')     : null, budget: b('pengKhusus'),     unit: 'orang' },
-    { cls: 'amber',label: 'TIDAK BAYAR',      curr: sumMetric(cur, 'pengTidakBayar'), prev: state.cmp.enabled ? sumMetric(cmp, 'pengTidakBayar') : null, budget: b('pengTidakBayar'), unit: 'orang' },
+    { cls: '',     label: 'INDIVIDU BAYAR',   curr: sumMetric(cur, 'pengIndividu'),   prev: state.cmp.enabled ? sumMetric(cmp, 'pengIndividu')   : null, budget: b('pengIndividu'),   prevBudget: pb('pengIndividu'),   unit: 'orang' },
+    { cls: 'deep', label: 'ROMBONGAN',        curr: sumMetric(cur, 'pengRombongan'),  prev: state.cmp.enabled ? sumMetric(cmp, 'pengRombongan')  : null, budget: b('pengRombongan'),  prevBudget: pb('pengRombongan'),  unit: 'orang' },
+    { cls: 'green',label: 'JABODETABEK',      curr: sumMetric(cur, 'pengJabodetabek'),prev: state.cmp.enabled ? sumMetric(cmp, 'pengJabodetabek'):null, budget: b('pengJabodetabek'),prevBudget: pb('pengJabodetabek'),unit: 'orang' },
+    { cls: '',     label: 'KHUSUS & LANGG.',  curr: sumMetric(cur, 'pengKhusus'),     prev: state.cmp.enabled ? sumMetric(cmp, 'pengKhusus')     : null, budget: b('pengKhusus'),     prevBudget: pb('pengKhusus'),     unit: 'orang' },
+    { cls: 'amber',label: 'TIDAK BAYAR',      curr: sumMetric(cur, 'pengTidakBayar'), prev: state.cmp.enabled ? sumMetric(cmp, 'pengTidakBayar') : null, budget: b('pengTidakBayar'), prevBudget: pb('pengTidakBayar'), unit: 'orang' },
   ];
   document.getElementById('pengunjungKpi').innerHTML = cards.map(renderKPICard).join('');
 }
@@ -1446,12 +1502,13 @@ function renderPendapatanKpi() {
   const cur = filterRange(state.cur.start, state.cur.end);
   const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
   const b = key => sumMetric(cur, key + '_b') || null;
+  const pb = key => state.cmp.enabled ? (sumMetric(cmp, key + '_b') || null) : null;
   const cards = [
-    { cls: 'deep',  label: 'TOTAL PENDAPATAN',   curr: sumMetric(cur, 'rev'),         prev: state.cmp.enabled ? sumMetric(cmp, 'rev')         : null, budget: b('rev'),        isCurrency: true },
-    { cls: '',      label: 'PENDAPATAN INPARK',  curr: sumMetric(cur, 'revInpark'),   prev: state.cmp.enabled ? sumMetric(cmp, 'revInpark')   : null, budget: b('revInpark'),  isCurrency: true },
-    { cls: '',      label: 'PENDAPATAN TIKET',   curr: sumMetric(cur, 'revTiket'),    prev: state.cmp.enabled ? sumMetric(cmp, 'revTiket')    : null, budget: b('revTiket'),   isCurrency: true },
-    { cls: 'amber', label: 'PENYEWAAN',          curr: sumMetric(cur, 'rentSub'),     prev: state.cmp.enabled ? sumMetric(cmp, 'rentSub')     : null, budget: b('rentSub'),    isCurrency: true },
-    { cls: 'green', label: 'SERVICE CHARGE',     curr: sumMetric(cur, 'usaService'),  prev: state.cmp.enabled ? sumMetric(cmp, 'usaService')  : null, budget: b('usaService'), isCurrency: true },
+    { cls: 'deep',  label: 'TOTAL PENDAPATAN',   curr: sumMetric(cur, 'rev'),         prev: state.cmp.enabled ? sumMetric(cmp, 'rev')         : null, budget: b('rev'),        prevBudget: pb('rev'),        isCurrency: true },
+    { cls: '',      label: 'PENDAPATAN INPARK',  curr: sumMetric(cur, 'revInpark'),   prev: state.cmp.enabled ? sumMetric(cmp, 'revInpark')   : null, budget: b('revInpark'),  prevBudget: pb('revInpark'),  isCurrency: true },
+    { cls: '',      label: 'PENDAPATAN TIKET',   curr: sumMetric(cur, 'revTiket'),    prev: state.cmp.enabled ? sumMetric(cmp, 'revTiket')    : null, budget: b('revTiket'),   prevBudget: pb('revTiket'),   isCurrency: true },
+    { cls: 'amber', label: 'PENYEWAAN',          curr: sumMetric(cur, 'rentSub'),     prev: state.cmp.enabled ? sumMetric(cmp, 'rentSub')     : null, budget: b('rentSub'),    prevBudget: pb('rentSub'),    isCurrency: true },
+    { cls: 'green', label: 'SERVICE CHARGE',     curr: sumMetric(cur, 'usaService'),  prev: state.cmp.enabled ? sumMetric(cmp, 'usaService')  : null, budget: b('usaService'), prevBudget: pb('usaService'), isCurrency: true },
   ];
   document.getElementById('pendapatanKpi').innerHTML = cards.map(renderKPICard).join('');
 }
