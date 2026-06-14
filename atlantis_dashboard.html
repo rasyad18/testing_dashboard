@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlantis Water Adventure — Performance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root {
+  --bg: #EDEDF5;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F5F5FA;
+  --bg-elevated: #FFFFFF;
+  --border: #E3E3ED;
+  --border-light: #D4D4E0;
+  --text: #1A1A1A;
+  --text-dim: #6B6B7B;
+  --text-faint: #A3A3B0;
+  --accent: #0194F3;
+  --accent-bright: #4FB4FF;
+  --accent-deep: #0064D2;
+  --tiket-blue: #0194F3;
+  --tiket-blue-light: #4FB4FF;
+  --tiket-blue-pale: #9FD6FF;
+  --tiket-blue-bg: #E7F2FF;
+  --ancol-deep: #0064D2;
+  --ancol-ocean: #0194F3;
+  --ancol-sky: #4FB4FF;
+  --ancol-pale: #9FD6FF;
+  --anggaran: #F59E0B;
+  --anggaran-bg: #FEF3C7;
+  --green: #0BAE54;
+  --green-bg: #E2FBED;
+  --red: #E5252A;
+  --red-bg: #FFE2E2;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); font-family: 'Nunito', 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(1, 148, 243, 0.05), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 10%, rgba(79, 180, 255, 0.04), transparent),
+    var(--bg);
+  min-height: 100vh; padding: 32px 40px 60px;
+}
+
+/* HEADER */
+.header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 24px; position: relative;
+}
+.header::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; width: 140px; height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+.brand { display: flex; flex-direction: column; gap: 4px; }
+.brand-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 2.5px; text-transform: uppercase; }
+.brand-title { font-family: 'Nunito', sans-serif; font-weight: 500; font-size: 36px; letter-spacing: -1px; line-height: 1; color: var(--text); }
+.brand-title em { font-style: normal; color: var(--accent); font-weight: 400; }
+.brand-subtitle { font-size: 13px; color: var(--text-dim); margin-top: 6px; letter-spacing: 0.3px; }
+.header-meta { text-align: right; }
+.header-meta .label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: 1.5px; text-transform: uppercase; }
+.header-meta .value { font-family: 'Nunito', sans-serif; font-size: 22px; color: var(--text); margin-top: 2px; }
+.header-meta .range { font-size: 12px; color: var(--text-dim); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+/* STATUS BAR */
+.status-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 14px 18px; border-radius: 10px; margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(48,49,53,0.04);
+}
+.status-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 16px;
+  background: var(--bg); border: 1px solid var(--border-light);
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
+.status-dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+.status-dot.cached { background: var(--accent); }
+.status-dot.error { background: var(--red); }
+.status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+.status-pill.live { color: var(--green); border-color: rgba(11,174,84,0.3); background: var(--green-bg); }
+.status-pill.cached { color: var(--accent); border-color: var(--tiket-blue-pale); background: var(--tiket-blue-bg); }
+.status-pill.error { color: var(--red); border-color: rgba(229,37,42,0.3); background: var(--red-bg); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.refresh-btn {
+  background: transparent; border: 1px solid var(--border-light); color: var(--text-dim);
+  padding: 8px 16px; border-radius: 6px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: 1px; font-weight: 600; transition: all 0.15s; margin-left: auto;
+}
+.refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* DATE PICKER */
+.date-picker-bar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 16px 20px; border-radius: 10px; margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(48,49,53,0.04);
+}
+.date-picker-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
+.date-trigger {
+  background: var(--bg); border: 1px solid var(--border-light); color: var(--text);
+  padding: 9px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 10px;
+  transition: all 0.15s; min-width: 300px; justify-content: space-between;
+}
+.date-trigger:hover, .date-trigger.open { border-color: var(--accent); }
+.date-trigger .preset-tag { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); background: rgba(1,148,243,0.1); padding: 2px 7px; border-radius: 10px; }
+.date-trigger .arrow { color: var(--text-dim); font-size: 10px; transition: transform 0.2s; }
+.date-trigger.open .arrow { transform: rotate(180deg); }
+.date-trigger .range-text { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+.date-popover-backdrop { position: fixed; inset: 0; background: transparent; z-index: 100; display: none; }
+.date-popover-backdrop.open { display: block; }
+.date-popover {
+  position: absolute; z-index: 101; background: var(--bg-elevated);
+  border: 1px solid var(--border-light); border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(48,49,53,0.18);
+  padding: 0; display: none; overflow: hidden; width: 640px;
+}
+.date-popover.open { display: flex; }
+.date-popover-presets {
+  width: 220px; background: var(--bg-card); border-right: 1px solid var(--border);
+  padding: 8px 0; max-height: 540px; overflow-y: auto;
+}
+.preset-item { padding: 9px 18px; cursor: pointer; font-size: 13px; color: var(--text); transition: background 0.1s; }
+.preset-item:hover { background: var(--bg); }
+.preset-item.active { background: var(--tiket-blue-bg); color: var(--accent); font-weight: 600; }
+.date-popover-main { flex: 1; padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+.date-input-row { display: flex; gap: 10px; align-items: end; }
+.date-input-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.date-input-group label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; font-weight: 500; }
+.date-input-group input {
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  color: var(--text); padding: 8px 10px; border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  color-scheme: light;
+}
+.date-input-group input:hover { border-color: var(--tiket-blue-pale); }
+.date-input-group input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(1,148,243,0.15); }
+.date-input-dash { color: var(--text-faint); padding-bottom: 9px; font-weight: 600; }
+.compare-toggle-row { display: flex; align-items: center; gap: 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+.compare-toggle-row .label-text { font-size: 13px; color: var(--text); font-weight: 500; }
+.toggle-switch { position: relative; width: 38px; height: 22px; background: var(--border-light); border-radius: 11px; cursor: pointer; transition: background 0.2s; }
+.toggle-switch.on { background: var(--accent); }
+.toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #FFFFFF; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(48,49,53,0.15); }
+.toggle-switch.on::after { transform: translateX(16px); }
+.compare-mode-select {
+  background: var(--bg); border: 1px solid var(--border-light); color: var(--text);
+  padding: 7px 10px; border-radius: 5px; font-size: 12.5px; cursor: pointer; flex: 1;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%238a99ad' stroke-width='1.5' fill='none'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+}
+.popover-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+.pf-btn { padding: 7px 16px; border-radius: 5px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; font-weight: 600; border: 1px solid var(--border-light); background: transparent; color: var(--text-dim); transition: all 0.15s; }
+.pf-btn:hover { border-color: var(--accent); color: var(--accent); }
+.pf-btn.primary { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
+.pf-btn.primary:hover { background: var(--accent-bright); }
+
+.compare-summary {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 18px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 14px; justify-content: center; flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim);
+  box-shadow: 0 1px 3px rgba(48,49,53,0.04);
+}
+.compare-summary .vs { color: var(--accent); font-weight: 600; padding: 0 4px; }
+.compare-summary strong { color: var(--text); }
+
+/* SECTION HEADER */
+.section-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 24px; margin: 32px 0 18px;
+  background: linear-gradient(90deg, rgba(1,148,243,0.08), transparent);
+  border-left: 4px solid var(--accent); border-radius: 4px;
+}
+.section-header.pengunjung { border-left-color: var(--ancol-sky); background: linear-gradient(90deg, rgba(79,180,255,0.10), transparent); }
+.section-header.pendapatan { border-left-color: var(--ancol-deep); background: linear-gradient(90deg, rgba(0,100,210,0.10), transparent); }
+.section-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent);
+  background: var(--tiket-blue-bg); border: 1px solid var(--tiket-blue-pale);
+  padding: 4px 11px; border-radius: 3px; letter-spacing: 2px; font-weight: 600;
+}
+.section-title { font-family: 'Nunito', sans-serif; font-weight: 500; font-size: 24px; color: var(--text); letter-spacing: -0.5px; }
+.section-title em { font-style: normal; color: var(--accent); font-weight: 500; }
+.section-subtitle { font-size: 12px; color: var(--text-dim); margin-left: auto; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; }
+
+/* KPI CARDS */
+.kpi-grid { display: grid; gap: 16px; margin-bottom: 24px; }
+.kpi-grid > * { min-width: 0; }
+.kpi-grid.cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.kpi-grid.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.kpi-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpi-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.kpi-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; position: relative; overflow: hidden;
+  transition: all 0.2s; box-shadow: 0 1px 3px rgba(48,49,53,0.04);
+  min-width: 0;
+}
+.kpi-card:hover {
+  border-color: var(--tiket-blue-pale); transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(1,148,243,0.10);
+}
+.kpi-card::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+  background: var(--accent); opacity: 0; transition: opacity 0.2s;
+}
+.kpi-card:hover::before { opacity: 1; }
+.kpi-card.amber::before { background: var(--anggaran); }
+.kpi-card.green::before { background: var(--green); }
+.kpi-card.deep::before { background: var(--ancol-deep); }
+.kpi-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
+.kpi-value {
+  font-family: 'Nunito', sans-serif; font-weight: 600;
+  font-size: clamp(14px, 1.8vw, 24px);
+  line-height: 1.2; color: var(--text); letter-spacing: -0.4px; white-space: nowrap;
+}
+.kpi-currency, .kpi-unit { font-size: 13px; color: var(--text-dim); font-family: 'Inter', sans-serif; font-weight: 400; }
+.kpi-currency { margin-right: 4px; color: var(--accent); font-size: 13px; font-weight: 500; }
+.kpi-prev { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; margin-top: 6px; }
+.kpi-compare { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; }
+.kpi-delta { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 11px; }
+.kpi-delta.up { background: var(--green-bg); color: var(--green); }
+.kpi-delta.down { background: var(--red-bg); color: var(--red); }
+.kpi-vs { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+
+/* Anggaran block (PDA-style) */
+.kpi-secondary-block { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.kpi-secondary-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 7px; }
+.kpi-secondary-label .dot { display: inline-block; width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+.kpi-secondary-label .dot.anggaran { background: var(--anggaran); }
+.kpi-secondary-label .dot.pembanding { background: transparent; border: 1.5px solid var(--text-dim); }
+.kpi-anggaran-block .kpi-secondary-label { color: var(--anggaran); }
+.kpi-pembanding-block .kpi-secondary-label { color: var(--text-dim); }
+.kpi-secondary-val { color: var(--text); font-family: 'Nunito', sans-serif; font-weight: 600; font-size: 19px; letter-spacing: -0.3px; line-height: 1.15; word-break: break-word; }
+.kpi-secondary-val .rp-anggaran { color: var(--anggaran); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; margin-right: 3px; }
+.kpi-secondary-val .rp-pembanding { color: var(--text-dim); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; margin-right: 3px; }
+.kpi-mini-compare { display: flex; align-items: center; gap: 8px; margin-top: 7px; font-size: 12px; }
+.kpi-delta.warn { color: #B97500; background: var(--anggaran-bg); }
+
+/* Display toggle bar */
+.display-toggle {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 12px 18px; border-radius: 10px; margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(48,49,53,0.04);
+}
+.display-toggle .toggle-bar-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;
+}
+.display-toggle .toggle-checkbox {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light);
+  font-size: 12px; color: var(--text); transition: all 0.15s;
+  user-select: none; background: var(--bg-card);
+}
+.display-toggle .toggle-checkbox:hover { border-color: var(--accent); }
+.display-toggle .toggle-checkbox input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent); }
+.display-toggle .toggle-checkbox.anggaran input[type="checkbox"] { accent-color: var(--anggaran); }
+.display-toggle .toggle-checkbox .color-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.display-toggle .toggle-checkbox .color-dot.realisasi { background: #0194F3; }
+.display-toggle .toggle-checkbox .color-dot.anggaran { background: var(--anggaran); }
+.display-toggle .toggle-checkbox.active { background: var(--tiket-blue-bg); border-color: var(--accent); }
+.display-toggle .toggle-checkbox.active.anggaran { background: var(--anggaran-bg); border-color: var(--anggaran); }
+
+/* PANELS */
+.row { display: grid; gap: 20px; margin-bottom: 20px; }
+.row > * { min-width: 0; }
+.row-2 { grid-template-columns: 1.6fr 1fr; }
+.row-2-eq { grid-template-columns: 1fr 1fr; }
+.row-1 { grid-template-columns: 1fr; }
+.row-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 1400px) {
+  .row-3, .row-2, .row-2-eq { grid-template-columns: 1fr; }
+}
+.panel {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 22px;
+  box-shadow: 0 1px 3px rgba(48,49,53,0.04);
+  max-width: 100%; overflow: visible;
+}
+.panel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.panel-title { font-family: 'Nunito', sans-serif; font-weight: 500; font-size: 18px; color: var(--text); letter-spacing: -0.3px; }
+.panel-subtitle { font-size: 12px; color: var(--text-dim); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+.panel-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.metric-pill { background: var(--bg); border: 1px solid var(--border-light); color: var(--text-dim); padding: 5px 11px; border-radius: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; cursor: pointer; transition: all 0.15s; }
+.metric-pill:hover { border-color: var(--accent); color: var(--text); }
+.metric-pill.active { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
+.chart-wrap { position: relative; height: 320px; }
+.chart-wrap.tall { height: 360px; }
+
+/* INSIGHTS */
+.insights {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(48,49,53,0.04);
+}
+.insights-title { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 14px; font-weight: 600; }
+.insights-list { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1024px) { .insights-list { grid-template-columns: 1fr; } }
+.insight-item { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; background: var(--bg); border-radius: 8px; border-left: 2px solid var(--accent); }
+.insight-item.positive { border-left-color: var(--green); }
+.insight-item.negative { border-left-color: var(--red); }
+.insight-item.warning { border-left-color: var(--anggaran); }
+.insight-icon { font-family: 'Nunito', sans-serif; font-size: 22px; line-height: 1; color: var(--accent); flex-shrink: 0; margin-top: -2px; }
+.insight-item.positive .insight-icon { color: var(--green); }
+.insight-item.negative .insight-icon { color: var(--red); }
+.insight-item.warning .insight-icon { color: var(--anggaran); }
+.insight-content h4 { font-family: 'Nunito', sans-serif; font-weight: 500; font-size: 15px; color: var(--text); margin-bottom: 4px; }
+.insight-content p { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.insight-content strong { color: var(--text); font-weight: 600; }
+
+/* DATA TABLE */
+.dt-wrap {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;
+  overflow: hidden;
+}
+.dt-title { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 4px; }
+.dt-subtitle { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; }
+.dt-scroll { width: 100%; overflow-x: auto; border-radius: 8px; }
+.dt { width: 100%; border-collapse: collapse; font-family: 'Nunito', 'Inter', sans-serif; font-size: 13px; min-width: 100%; }
+.dt thead th { background: var(--accent); color: #FFFFFF; font-weight: 700; text-align: center; padding: 10px 14px; border: none; font-size: 13px; }
+.dt thead th.dt-akun-head { width: 110px; min-width: 110px; }
+.dt thead th.dt-label-head { text-align: left; min-width: 280px; }
+.dt tbody td { padding: 8px 14px; border: none; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; background: var(--bg-card); }
+.dt tbody td.dt-label { text-align: left; font-weight: 500; }
+.dt tbody td.dt-akun { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); font-weight: 600; letter-spacing: 0.3px; }
+/* Section header (I. PENGUNJUNG, II. PENDAPATAN) — navy bar */
+.dt tbody tr.dt-section-head td { background: var(--accent-deep); color: #FFFFFF; font-weight: 800; font-size: 13px; letter-spacing: 0.5px; padding: 11px 14px; }
+/* Group header with akun code (4201-10.44 INDIVIDU, dst.) — soft blue bar */
+.dt tbody tr.dt-group-head td { background: var(--tiket-blue-bg); font-weight: 800; color: var(--accent-deep); font-size: 12px; padding: 10px 14px; letter-spacing: 0.3px; }
+.dt tbody tr.dt-group-head td.dt-akun { color: var(--accent); font-weight: 800; }
+/* Sub heading (Rombongan, Pengunjung Jabodetabek) — light grey */
+.dt tbody tr.dt-subhead td { background: var(--bg); color: var(--text); font-weight: 700; font-size: 12px; padding: 8px 14px; font-style: italic; }
+/* Regular item rows */
+.dt tbody tr.dt-item td { background: var(--bg-card); font-weight: 500; }
+.dt tbody tr.dt-item td.dt-akun { color: var(--text-dim); font-weight: 500; }
+/* Sub total rows */
+.dt tbody tr.dt-sub td { font-weight: 700; background: var(--bg); }
+.dt tbody tr.dt-sub td.dt-akun { color: var(--text); font-weight: 700; }
+/* Grand total rows */
+.dt tbody tr.dt-total td { font-weight: 800; background: var(--tiket-blue-bg); color: var(--accent-deep); }
+.dt tbody tr.dt-total td.dt-akun { color: var(--accent); font-weight: 800; }
+/* Warning percentage (80–99%) */
+.dt tbody td.pct-warn { color: #B45309; background: #FEF3C7; font-weight: 700; }
+.dt-indent-1 { padding-left: 14px; }
+.dt-indent-2 { padding-left: 32px; color: var(--text-dim); }
+.dt tbody td.pct-down { color: var(--red); background: var(--red-bg); font-weight: 700; }
+.dt tbody td.pct-up { color: var(--green); background: var(--green-bg); font-weight: 700; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 30px; right: 30px; background: var(--bg-card); border: 1px solid var(--border-light); border-left: 3px solid var(--accent); padding: 14px 20px; border-radius: 8px; font-size: 13px; color: var(--text); box-shadow: 0 8px 24px rgba(48,49,53,0.12); transform: translateX(500px); transition: transform 0.3s; z-index: 1000; max-width: 480px; line-height: 1.5; }
+.toast.show { transform: translateX(0); }
+.toast.success { border-left-color: var(--green); }
+.toast.error { border-left-color: var(--red); }
+
+/* RESPONSIVE */
+@media (max-width: 1280px) {
+  .kpi-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid.cols-5 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  body { padding: 16px; }
+  .kpi-grid.cols-6, .kpi-grid.cols-5, .kpi-grid.cols-4, .kpi-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  .header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .header-meta { text-align: left; }
+  .brand-title { font-size: 28px; }
+  .date-trigger { min-width: 0; width: 100%; }
+  .date-popover { width: 95vw; max-width: 540px; flex-direction: column; }
+  .date-popover-presets { width: 100%; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-tag">— Atlantis Water Adventure</div>
+    <h1 class="brand-title">Performance <em>Dashboard</em></h1>
+    <div class="brand-subtitle">Laporan Harian Pengunjung & Pendapatan — Synced from Google Sheets</div>
+  </div>
+  <div class="header-meta">
+    <div class="label">Reporting Window</div>
+    <div class="value" id="dateRangeText">—</div>
+    <div class="range" id="daysCountText">—</div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-pill" id="dataStatus"><div class="status-dot"></div><span class="status-text">DATA · INIT</span></div>
+  <div class="status-pill" id="rowsStatus"><div class="status-dot"></div><span class="status-text">ROWS · 0</span></div>
+  <div class="status-pill" id="lastUpdateStatus"><div class="status-dot"></div><span class="status-text">UPDATED · —</span></div>
+  <button class="refresh-btn" id="refreshBtn">↻ REFRESH DATA</button>
+</div>
+
+<div class="date-picker-bar">
+  <span class="date-picker-label">Periode:</span>
+  <button class="date-trigger" id="dateTrigger"><span id="dateTriggerInner">—</span></button>
+  <span class="date-picker-label" style="margin-left:auto">Klik untuk mengubah preset & periode pembanding</span>
+</div>
+
+<div class="compare-summary" id="compareSummary">—</div>
+
+<div class="date-popover-backdrop" id="popoverBackdrop"></div>
+<div class="date-popover" id="datePopover">
+  <div class="date-popover-presets" id="presetList"></div>
+  <div class="date-popover-main">
+    <div class="date-input-row">
+      <div class="date-input-group"><label>Start date</label><input type="date" id="curStartInput"></div>
+      <span class="date-input-dash">—</span>
+      <div class="date-input-group"><label>End date</label><input type="date" id="curEndInput"></div>
+    </div>
+    <div class="compare-toggle-row">
+      <span class="label-text">Compare</span>
+      <div class="toggle-switch" id="compareToggle"></div>
+      <select class="compare-mode-select" id="compareModeSelect">
+        <option value="previous_period">Previous period</option>
+        <option value="previous_year">Previous year</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="date-input-row">
+      <div class="date-input-group"><label>Compare Start</label><input type="date" id="cmpStartInput"></div>
+      <span class="date-input-dash">—</span>
+      <div class="date-input-group"><label>Compare End</label><input type="date" id="cmpEndInput"></div>
+    </div>
+    <div class="popover-footer">
+      <button class="pf-btn" id="cancelBtn">CANCEL</button>
+      <button class="pf-btn primary" id="applyBtn">APPLY</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DISPLAY TOGGLE (Realisasi / Anggaran) ========== -->
+<div class="display-toggle">
+  <span class="toggle-bar-label">Tampilkan:</span>
+  <label class="toggle-checkbox active" id="toggleRealisasiLabel">
+    <input type="checkbox" id="toggleRealisasi" checked>
+    <span class="color-dot realisasi"></span>
+    <span>Realisasi</span>
+  </label>
+  <label class="toggle-checkbox active anggaran" id="toggleAnggaranLabel">
+    <input type="checkbox" id="toggleAnggaran" checked>
+    <span class="color-dot anggaran"></span>
+    <span>Anggaran</span>
+  </label>
+  <span class="toggle-bar-label" style="margin-left:auto; color: var(--text-faint);">Centang minimal satu untuk melihat data</span>
+</div>
+
+<!-- ========== SECTION 1: OVERVIEW ========== -->
+<div class="section-header">
+  <span class="section-num">SECTION 1</span>
+  <h2 class="section-title">Ringkasan <em>· Overview</em></h2>
+  <div class="section-subtitle">Atlantis Water Adventure</div>
+</div>
+<div class="kpi-grid cols-4" id="overviewKpi"></div>
+<div class="insights"><div class="insights-title">◆ Atlantis Insights</div><div class="insights-list" id="overviewInsights"></div></div>
+
+<!-- ========== SECTION 2: PENGUNJUNG ========== -->
+<div class="section-header pengunjung">
+  <span class="section-num">SECTION 2</span>
+  <h2 class="section-title">Pengunjung <em>· Visitor Performance</em></h2>
+  <div class="section-subtitle">Detail composition & trend</div>
+</div>
+<div class="kpi-grid cols-5" id="pengunjungKpi"></div>
+<div class="row row-2">
+  <div class="panel">
+    <div class="panel-header">
+      <div><div class="panel-title">Tren Pengunjung Harian</div><div class="panel-subtitle">Daily visitor count</div></div>
+      <div class="panel-actions" id="pengunjungTrendPills">
+        <button class="metric-pill active" data-metric="total">TOTAL</button>
+        <button class="metric-pill" data-metric="individu">INDIVIDU</button>
+        <button class="metric-pill" data-metric="rombongan">ROMBONGAN</button>
+        <button class="metric-pill" data-metric="tidakBayar">TIDAK BAYAR</button>
+      </div>
+    </div>
+    <div class="chart-wrap tall"><canvas id="pengunjungTrend"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">Komposisi Pengunjung</div><div class="panel-subtitle">Individu vs Rombongan vs Tidak Bayar</div></div></div>
+    <div class="chart-wrap tall"><canvas id="pengunjungPie"></canvas></div>
+  </div>
+</div>
+<div class="row row-2-eq">
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">Top Jenis Tiket Individu</div><div class="panel-subtitle">By visitor count</div></div></div>
+    <div class="chart-wrap"><canvas id="topTiketIndividu"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">Performa per Hari dalam Minggu</div><div class="panel-subtitle">Day-of-week average</div></div></div>
+    <div class="chart-wrap"><canvas id="pengunjungDow"></canvas></div>
+  </div>
+</div>
+
+<!-- ========== SECTION 3: PENDAPATAN ========== -->
+<div class="section-header pendapatan">
+  <span class="section-num">SECTION 3</span>
+  <h2 class="section-title">Pendapatan <em>· Revenue Performance</em></h2>
+  <div class="section-subtitle">Tiket · Penyewaan · Usaha Rupa-rupa</div>
+</div>
+<div class="kpi-grid cols-5" id="pendapatanKpi"></div>
+<div class="row row-2">
+  <div class="panel">
+    <div class="panel-header">
+      <div><div class="panel-title">Tren Pendapatan Harian</div><div class="panel-subtitle">Daily revenue trend</div></div>
+      <div class="panel-actions" id="pendapatanTrendPills">
+        <button class="metric-pill active" data-metric="total">TOTAL</button>
+        <button class="metric-pill" data-metric="tiket">TIKET</button>
+        <button class="metric-pill" data-metric="penyewaan">PENYEWAAN</button>
+        <button class="metric-pill" data-metric="usaha">USAHA RUPA-RUPA</button>
+      </div>
+    </div>
+    <div class="chart-wrap tall"><canvas id="pendapatanTrend"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">Komposisi Pendapatan</div><div class="panel-subtitle">Revenue breakdown</div></div></div>
+    <div class="chart-wrap tall"><canvas id="pendapatanPie"></canvas></div>
+  </div>
+</div>
+<div class="row row-2-eq">
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">Breakdown Penyewaan</div><div class="panel-subtitle">Ban · Locker · Gazebo · etc.</div></div></div>
+    <div class="chart-wrap"><canvas id="penyewaanBar"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><div><div class="panel-title">ARPU (Avg Revenue per Visitor)</div><div class="panel-subtitle">Total Pendapatan / Total Pengunjung</div></div></div>
+    <div class="chart-wrap"><canvas id="arpuTrend"></canvas></div>
+  </div>
+</div>
+
+<!-- ========== SECTION 4: DATA TABLES ========== -->
+<div class="section-header">
+  <span class="section-num">SECTION 4</span>
+  <h2 class="section-title">Tabel Data <em>· Ringkasan Numerik</em></h2>
+  <div class="section-subtitle">Atlantis breakdown</div>
+</div>
+<div id="dataTablesContainer"></div>
+
+<div class="footer" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace;">
+  <div>ATLANTIS WATER ADVENTURE · PERFORMANCE DASHBOARD v1.0</div>
+  <div id="lastUpdate">—</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ CONFIG ============
+const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTcO9ZuglUAveoJk1TRoNRV_p_3s2XFo_kvrpuHK5wdZFrgjBsdOPk9FeIbZ9D6ZcmhPwfGi2vqkjrd/pub?gid=1125858855&single=true&output=csv";
+
+// Struktur Atlantis: 236 kolom
+//   Col A (idx 0)        : Tanggal
+//   Col B–DN (idx 1–117) : ANGGARAN (Pengunjung idx 2–55, Pendapatan idx 57–117)
+//   Col DO (idx 118)     : Separator kosong
+//   Col DP–IB (idx 119–235): REALISASI (mirror, offset = +118)
+const OFFSET = 118;
+
+// ============ METRIC REGISTRY ============
+// Posisi anggaran dari Database_Format_LH_Atlantis.xlsx. Realisasi = anggIdx + OFFSET.
+const METRICS = [
+  // ====== PENGUNJUNG ======
+  // --- 4201-10.44 (Tiket Individu Reguler) ---
+  { key: 'tikMasuk',              anggIdx: 2,  label: 'Tiket Masuk' },
+  { key: 'tikIndividu',           anggIdx: 3,  label: 'Tiket Individu' },
+  { key: 'tikForeigner',          anggIdx: 4,  label: '(Foreigner) Tiket Individu' },
+  { key: 'tikHargaKhusus',        anggIdx: 5,  label: 'Tiket Harga Khusus' },
+  { key: 'tikBundlingAwaSwa',     anggIdx: 6,  label: 'Tiket Bundling AWA ke SWA' },
+  { key: 'tikBundlingSwaAwa',     anggIdx: 7,  label: 'Tiket Bundling SWA ke AWA' },
+  { key: 'tikBundlingAwaOds',     anggIdx: 8,  label: 'Tiket Bundling AWA ke ODS' },
+  { key: 'tikBundlingOdsAwa',     anggIdx: 9,  label: 'Tiket Bundling ODS ke AWA' },
+  { key: 'tikBundlingAwaDufan',   anggIdx: 10, label: 'Tiket Bundling AWA ke Dufan' },
+  { key: 'tikBundlingDufanAwa',   anggIdx: 11, label: 'Tiket Bundling Dufan ke AWA' },
+  { key: 'tikBundlingAwaJbl',     anggIdx: 12, label: 'Tiket Bundling AWA ke JBL' },
+  { key: 'tikForeignerAwaJbl',    anggIdx: 13, label: '(Foreigner) Tiket AWA ke JBL' },
+  { key: 'tikForeignerAwaSwa',    anggIdx: 14, label: '(Foreigner) Tiket AWA ke SWA' },
+  { key: 'tikBundlingPDA',        anggIdx: 15, label: 'Tiket Bundling PDA' },
+  { key: 'tikPromoSosro',         anggIdx: 16, label: 'Tiket Promo Sosro' },
+  { key: 'tikECommerce',          anggIdx: 17, label: 'Tiket E-Commerce' },
+  { key: 'tikAncolCom',           anggIdx: 18, label: 'Tiket Ancol.com' },
+  { key: 'tikSubTiket',           anggIdx: 19, label: 'Sub Total (Tiket Individu)' },
+  // --- 4201-15.44 (Annual Value Card) ---
+  { key: 'avcWeekday',            anggIdx: 21, label: 'Annual Value Card (Weekday)' },
+  { key: 'avcAllday',             anggIdx: 22, label: 'Annual Value Card (Allday)' },
+  { key: 'avc6Bulan',             anggIdx: 23, label: 'Annual Value Card (6 bulan)' },
+  { key: 'avc3Bulan',             anggIdx: 24, label: 'Annual Value Card (3 bulan)' },
+  { key: 'avcECommerce',          anggIdx: 25, label: 'Annual Value Card E-Commerse' },
+  { key: 'avcAncolCom',           anggIdx: 26, label: 'Annual Value Card Ancol.com' },
+  { key: 'avcForeigner',          anggIdx: 27, label: 'Annual Value Card Foreigner' },
+  { key: 'avcForeigner6Month',    anggIdx: 28, label: 'Annual Value Card Foreigner 6 Month' },
+  { key: 'avcSubTotal',           anggIdx: 29, label: 'Sub Total (AVC)' },
+  // JUMLAH INDIVIDU BAYAR
+  { key: 'pengIndividu',          anggIdx: 30, label: 'JUMLAH PENGUNJUNG INDIVIDU BAYAR' },
+  // --- Rombongan: Jabodetabek ---
+  { key: 'jaboPelajarSek',        anggIdx: 33, label: 'Pelajar/Sekolah (Jabodetabek)' },
+  { key: 'jaboUmum',              anggIdx: 34, label: 'Umum/Perusahaan (Jabodetabek)' },
+  { key: 'jaboLangg',             anggIdx: 35, label: 'Langg. Sekolah' },
+  { key: 'jaboOnline',            anggIdx: 36, label: 'Online' },
+  { key: 'pengJabodetabek',       anggIdx: 37, label: 'JUMLAH PENGUNJUNG JABODETABEK' },
+  // --- Rombongan Agen (4201-40.44) ---
+  { key: 'agenPelajarSek',        anggIdx: 39, label: 'Pelajar/Sekolah (Rombongan Agen)' },
+  { key: 'agenUmum',              anggIdx: 40, label: 'Umum/Perusahaan (Rombongan Agen)' },
+  { key: 'pengRombAgen',          anggIdx: 41, label: 'JUMLAH PENGUNJUNG ROMB. AGEN' },
+  // --- Khusus & Langganan ---
+  { key: 'klCardPelajar',         anggIdx: 43, label: 'Card Pelajar' },
+  { key: 'klCardUmum',            anggIdx: 44, label: 'Card Umum' },
+  { key: 'klCardUmumMobil',       anggIdx: 45, label: 'Card Umum+Mobil' },
+  { key: 'klKartu',               anggIdx: 46, label: 'Kartu - kartu' },
+  { key: 'pengKhusus',            anggIdx: 47, label: 'JUMLAH PENGUNJUNG KHUSUS & LANGG.' },
+  { key: 'pengRombongan',         anggIdx: 48, label: 'JUMLAH PENGUNJUNG ROMBONGAN' },
+  { key: 'pengBayar',             anggIdx: 50, label: 'JUMLAH PENGUNJUNG BAYAR' },
+  // --- Tidak Bayar ---
+  { key: 'tbRepeater',            anggIdx: 52, label: 'Repeater Annual Pas Doki' },
+  { key: 'tbRk',                  anggIdx: 53, label: 'RK, COMP, VIP DLL' },
+  { key: 'pengTidakBayar',        anggIdx: 54, label: 'JUMLAH PENGUNJUNG TIDAK BAYAR' },
+  { key: 'pengTotal',             anggIdx: 55, label: 'TOTAL PENGUNJUNG' },
+
+  // ====== PENDAPATAN ======
+  // --- 4201-10.44 (Tiket Individu Reguler Rp) ---
+  { key: 'revTikMasuk',           anggIdx: 57, label: 'Tiket Masuk' },
+  { key: 'revTikIndividu',        anggIdx: 58, label: 'Tiket Individu' },
+  { key: 'revTikForeigner',       anggIdx: 59, label: '(Foreigner) Tiket Individu' },
+  { key: 'revTikHargaKhusus',     anggIdx: 60, label: 'Tiket Harga Khusus' },
+  { key: 'revTikBundlingAwaSwa',  anggIdx: 61, label: 'Tiket Bundling AWA ke SWA' },
+  { key: 'revTikBundlingSwaAwa',  anggIdx: 62, label: 'Tiket Bundling SWA ke AWA' },
+  { key: 'revTikBundlingAwaOds',  anggIdx: 63, label: 'Tiket Bundling AWA ke ODS' },
+  { key: 'revTikBundlingOdsAwa',  anggIdx: 64, label: 'Tiket Bundling ODS ke AWA' },
+  { key: 'revTikBundlingAwaDufan',anggIdx: 65, label: 'Tiket Bundling AWA ke Dufan' },
+  { key: 'revTikBundlingDufanAwa',anggIdx: 66, label: 'Tiket Bundling Dufan ke AWA' },
+  { key: 'revTikBundlingAwaJbl',  anggIdx: 67, label: 'Tiket Bundling AWA ke JBL' },
+  { key: 'revTikForeignerAwaJbl', anggIdx: 68, label: '(Foreigner) Tiket AWA ke JBL' },
+  { key: 'revTikForeignerAwaSwa', anggIdx: 69, label: '(Foreigner) Tiket AWA ke SWA' },
+  { key: 'revTikBundlingPDA',     anggIdx: 70, label: 'Tiket Bundling PDA' },
+  { key: 'revTikPromoSosro',      anggIdx: 71, label: 'Tiket Promo Sosro' },
+  { key: 'revTikECommerce',       anggIdx: 72, label: 'Tiket E-Commerce' },
+  { key: 'revTikAncolCom',        anggIdx: 73, label: 'Tiket Ancol.com' },
+  { key: 'revTikSubTotal',        anggIdx: 74, label: 'Sub Total Tiket' },
+  // --- AVC (Pendapatan) ---
+  { key: 'revAvcWeekday',         anggIdx: 75, label: 'Annual Value Card (Weekday)' },
+  { key: 'revAvcAllday',          anggIdx: 76, label: 'Annual Value Card (Allday)' },
+  { key: 'revAvc6Bulan',          anggIdx: 77, label: 'Annual Value Card (6 bulan)' },
+  { key: 'revAvc3Bulan',          anggIdx: 78, label: 'Annual Value Card (3 bulan)' },
+  { key: 'revAvcECommerce',       anggIdx: 79, label: 'Annual Value Card E-Commerse' },
+  { key: 'revAvcAncolCom',        anggIdx: 80, label: 'Annual Value Card Ancol.com' },
+  { key: 'revAvcForeigner',       anggIdx: 81, label: 'Annual Value Card Foreigner' },
+  { key: 'revAvcForeigner6Month', anggIdx: 82, label: 'Annual Value Card Foreigner 6 Month' },
+  { key: 'revAvcSubTotal',        anggIdx: 83, label: 'Sub Total AVC' },
+  // JUMLAH PENDAPATAN INDIVIDU
+  { key: 'revIndividu',           anggIdx: 84, label: 'JUMLAH PENDAPATAN INDIVIDU' },
+  // --- Rombongan: Jabodetabek (Pendapatan) ---
+  { key: 'revJaboPelajarSek',     anggIdx: 87, label: 'Pelajar/Sekolah (Jabodetabek)' },
+  { key: 'revJaboUmum',           anggIdx: 88, label: 'Umum/Perusahaan (Jabodetabek)' },
+  { key: 'revJaboLangg',          anggIdx: 89, label: 'Langg. Sekolah' },
+  { key: 'revJaboOnline',         anggIdx: 90, label: 'Online' },
+  { key: 'revJabodetabek',        anggIdx: 91, label: 'JUMLAH PENDAPATAN JABODETABEK' },
+  // --- Rombongan Agen (Pendapatan 4201-40.44) ---
+  { key: 'revAgenPelajarSek',     anggIdx: 93, label: 'Pelajar/Sekolah (Rombongan Agen)' },
+  { key: 'revAgenUmum',           anggIdx: 94, label: 'Umum/Perusahaan (Rombongan Agen)' },
+  { key: 'revRombAgen',           anggIdx: 95, label: 'JUMLAH PENDAPATAN ROMB. AGEN' },
+  // --- Khusus & Langganan (Pendapatan) ---
+  { key: 'revKlCardPelajar',      anggIdx: 97, label: 'Card Pelajar' },
+  { key: 'revKlCardUmum',         anggIdx: 98, label: 'Card Umum' },
+  { key: 'revKlCardUmumMobil',    anggIdx: 99, label: 'Card Umum+Mobil' },
+  { key: 'revKlKartu',            anggIdx: 100,label: 'Kartu - kartu' },
+  { key: 'revKhusus',             anggIdx: 101,label: 'JUMLAH PENDAPATAN KHUSUS & LANGG.' },
+  { key: 'revRombongan',          anggIdx: 102,label: 'JUMLAH PENDAPATAN ROMBONGAN' },
+  { key: 'revTiket',              anggIdx: 103,label: 'JUMLAH PENDAPATAN TIKET' },
+  // --- Penyewaan (4201-20.44) ---
+  { key: 'rentBan',               anggIdx: 105, label: 'Ban' },
+  { key: 'rentGazebo',            anggIdx: 106, label: 'Gazebo/Tikar' },
+  { key: 'rentLocker',            anggIdx: 107, label: 'Locker' },
+  { key: 'rentTenda',             anggIdx: 108, label: 'Tenda Camping' },
+  { key: 'rentSunLounger',        anggIdx: 109, label: 'Sun Lounger/Kursi Payung/bebek karet' },
+  { key: 'rentBajuRenang',        anggIdx: 110, label: 'Baju Renang' },
+  { key: 'rentSub',               anggIdx: 111, label: 'Sub Total Penyewaan' },
+  // --- Usaha & Service ---
+  { key: 'usaRupaRupa',           anggIdx: 112, label: 'Usaha Rupa-rupa' },
+  { key: 'usaPakanIkan',          anggIdx: 113, label: 'Pakan Ikan' },
+  { key: 'usaAcara',              anggIdx: 114, label: 'Pendapatan Acara' },
+  { key: 'usaService',            anggIdx: 115, label: 'Service Charge' },
+  // --- Total Pendapatan ---
+  { key: 'revInpark',             anggIdx: 116, label: 'TOTAL PENDAPATAN INPARK' },
+  { key: 'rev',                   anggIdx: 117, label: 'TOTAL PENDAPATAN' },
+];
+
+// Set kunci pendapatan (untuk format Rp di tabel & chart). Semua key dengan anggIdx >= 57 = currency.
+const CURRENCY_KEYS = new Set(METRICS.filter(m => m.anggIdx >= 57).map(m => m.key));
+
+// ============ FORMATTERS ============
+const FMT_FULL = n => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Math.round(n || 0));
+const FMT_RP = n => 'Rp ' + FMT_FULL(n);
+const FMT_NUM = n => FMT_FULL(n);
+const FMT_COMPACT = n => {
+  if (n == null || isNaN(n)) return '0';
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return (n/1e9).toFixed(2).replace(/\.?0+$/, '') + 'B';
+  if (abs >= 1e6) return (n/1e6).toFixed(1).replace(/\.?0+$/, '') + 'M';
+  if (abs >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return FMT_FULL(n);
+};
+const FMT_RP_COMPACT = n => 'Rp ' + FMT_COMPACT(n);
+const FMT_DATE_SHORT = s => {
+  const [y,m,d] = s.split('-');
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+};
+const MONTH_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const DOW_NAMES = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+const pad = n => String(n).padStart(2, '0');
+
+Chart.defaults.color = '#6B6B7B';
+Chart.defaults.borderColor = '#E3E3ED';
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.devicePixelRatio = 2;
+
+// Plugin: persentase di tengah slice doughnut (>=4%)
+const doughnutPercentLabels = {
+  id: 'doughnutPercentLabels',
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data) return;
+    const total = meta.data.reduce((s, arc) => s + (arc.$context?.parsed || 0), 0);
+    if (!total) return;
+    ctx.save();
+    meta.data.forEach((arc, i) => {
+      const value = chart.data.datasets[0].data[i] || 0;
+      const pct = (value / total) * 100;
+      if (pct < 4) return;
+      const { x, y, startAngle, endAngle, innerRadius, outerRadius } = arc.getProps(
+        ['x', 'y', 'startAngle', 'endAngle', 'innerRadius', 'outerRadius'], true
+      );
+      const midAngle = (startAngle + endAngle) / 2;
+      const radius = (innerRadius + outerRadius) / 2;
+      const lx = x + Math.cos(midAngle) * radius;
+      const ly = y + Math.sin(midAngle) * radius;
+      const bg = chart.data.datasets[0].backgroundColor[i] || '#0194F3';
+      const isDark = (() => {
+        const h = (bg || '#0194F3').replace('#','');
+        if (h.length !== 6) return true;
+        const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+        return (0.2126*r + 0.7152*g + 0.0722*b)/255 < 0.55;
+      })();
+      ctx.fillStyle = isDark ? '#FFFFFF' : '#1A1A1A';
+      ctx.font = '700 11px Nunito, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pct >= 10 ? pct.toFixed(0) + '%' : pct.toFixed(1) + '%', lx, ly);
+    });
+    ctx.restore();
+  }
+};
+Chart.register(doughnutPercentLabels);
+
+const PIE_COLORS = ['#0064D2', '#0194F3', '#4FB4FF', '#9FD6FF', '#E7F2FF', '#F59E0B', '#0BAE54', '#E5252A', '#A3A3B0'];
+
+// ============ DATE UTILS ============
+const dateToISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const ISOToDate = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const daysBetween = (a, b) => Math.round((b-a) / 86400000);
+
+// ============ STATE ============
+const state = {
+  raw: [],
+  metricKeys: [],
+  dataMin: null, dataMax: null,
+  cur: { start: '2026-01-01', end: '2026-01-31', presetKey: 'jan_2026' },
+  cmp: { start: '2025-01-01', end: '2025-01-31', mode: 'previous_year', enabled: false },
+  pengunjungTrendMetric: 'total',
+  pendapatanTrendMetric: 'total',
+  display: { real: true, budget: true },
+  lastFetch: null,
+  totalCols: 0,
+};
+let charts = {};
+
+// ============ HELPERS ============
+function showToast(message, type = 'info') {
+  const t = document.getElementById('toast');
+  t.className = 'toast ' + type; t.textContent = message;
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => t.classList.remove('show'), type === 'error' ? 10000 : 4000);
+}
+function setStatus(which, type, text) {
+  const map = { data: 'dataStatus', rows: 'rowsStatus', last: 'lastUpdateStatus' };
+  const el = document.getElementById(map[which]);
+  if (!el) return;
+  el.className = 'status-pill ' + type;
+  el.querySelector('.status-dot').className = 'status-dot ' + type;
+  el.querySelector('.status-text').textContent = text;
+}
+function parseNum(v) {
+  if (v == null || v === '') return 0;
+  if (typeof v === 'number') return v;
+  let s = String(v).replace(/\s/g, '').replace(/Rp/gi, '').trim();
+  if (s === '' || s === '-' || s.toLowerCase() === 'nan') return 0;
+  let neg = false;
+  if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1, -1); }
+  const hasC = s.includes(','), hasD = s.includes('.');
+  if (hasC && hasD) {
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if (hasD && !hasC) {
+    const parts = s.split('.');
+    if (parts.length > 2) s = s.replace(/\./g, '');
+    else if (parts.length === 2 && parts[1].length === 3 && /^\d+$/.test(parts[0]) && /^\d+$/.test(parts[1])) s = s.replace(/\./g, '');
+  } else if (hasC && !hasD) {
+    const parts = s.split(',');
+    if (parts.length > 2) s = s.replace(/,/g, '');
+    else if (parts.length === 2 && parts[1].length === 3 && /^\d+$/.test(parts[0]) && /^\d+$/.test(parts[1])) s = s.replace(/,/g, '');
+    else s = s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  if (isNaN(n)) return 0;
+  return neg ? -n : n;
+}
+function parseDateAny(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  let s = String(v).trim();
+  const sClean = s.replace(/,/g, '');
+  if (/^\d+(\.\d+)?$/.test(sClean)) {
+    const n = parseFloat(sClean);
+    if (n > 25000 && n < 80000) {
+      const utcMs = (n - 25569) * 86400 * 1000;
+      const ud = new Date(utcMs);
+      return new Date(ud.getUTCFullYear(), ud.getUTCMonth(), ud.getUTCDate());
+    }
+  }
+  const idMonths = {
+    'januari': 'january', 'februari': 'february', 'maret': 'march', 'mei': 'may',
+    'juni': 'june', 'juli': 'july', 'agustus': 'august', 'oktober': 'october', 'desember': 'december',
+    'agu': 'aug', 'okt': 'oct', 'des': 'dec'
+  };
+  let sLower = s.toLowerCase();
+  for (const [id, en] of Object.entries(idMonths)) {
+    if (sLower.includes(id)) { s = s.replace(new RegExp(id, 'i'), en); break; }
+  }
+  let d = new Date(s);
+  if (!isNaN(d)) return d;
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m) {
+    d = new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+    if (!isNaN(d)) return d;
+  }
+  return null;
+}
+
+// ============ CSV PARSING — Atlantis position-based ============
+function parseCSV(csvText) {
+  const parsed = Papa.parse(csvText, { skipEmptyLines: true });
+  if (!parsed.data || parsed.data.length < 2) throw new Error('CSV kosong/invalid');
+  const rows = parsed.data;
+  const headers = rows[0];
+  state.totalCols = headers.length;
+
+  const records = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const d = parseDateAny(row[0]);
+    if (!d) continue;
+    const rec = { date: dateToISO(d), metrics: {} };
+    for (const m of METRICS) {
+      rec.metrics[m.key + '_b'] = parseNum(row[m.anggIdx]);
+      rec.metrics[m.key]        = parseNum(row[m.anggIdx + OFFSET]);
+    }
+    records.push(rec);
+  }
+  records.sort((a, b) => a.date.localeCompare(b.date));
+  state.metricKeys = METRICS.map(m => m.key);
+  return records;
+}
+
+// ============ FETCH ============
+function normalizeUrl(url) {
+  url = url.trim();
+  // Ensure output=csv
+  if (!url.includes('output=csv')) {
+    if (url.includes('/pub?')) url = url + (url.endsWith('?') || url.endsWith('&') ? '' : '&') + 'output=csv';
+    else if (url.includes('/pub')) url = url + '?output=csv';
+  }
+  // Cache-bust: append timestamp so each page load fetches fresh data (bypass CDN/browser cache)
+  const sep = url.includes('?') ? '&' : '?';
+  return url + sep + '_=' + Date.now();
+}
+async function fetchData() {
+  setStatus('data', 'loading', 'DATA · LOADING');
+  try {
+    const url = normalizeUrl(DATA_URL);
+    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    if (text.startsWith('<') || text.includes('<!DOCTYPE')) {
+      throw new Error('Server kembalikan HTML, bukan CSV. Pastikan Sheet sudah di-Publish to Web.');
+    }
+    const records = parseCSV(text);
+    if (records.length === 0) throw new Error('Tidak ada baris valid setelah parsing');
+    state.raw = records;
+    state.lastFetch = new Date().toISOString();
+    recomputeDataRange();
+    setStatus('data', 'live', 'DATA · LIVE');
+    setStatus('rows', 'live', `ROWS · ${records.length}`);
+    const dt = new Date();
+    setStatus('last', 'live', `UPDATED · ${pad(dt.getHours())}:${pad(dt.getMinutes())}`);
+    const totalCols = state.totalHeaders || 0;
+    showToast(`✓ Data berhasil di-load: ${records.length} hari · ${totalCols} kolom · ${state.realCount} realisasi · ${state.anggCount} anggaran`, 'success');
+    return true;
+  } catch (err) {
+    console.error('Fetch error:', err);
+    setStatus('data', 'error', 'DATA · ERROR');
+    showToast(`✗ Gagal load data: ${err.message}`, 'error');
+    return false;
+  }
+}
+
+function recomputeDataRange() {
+  if (state.raw.length === 0) return;
+  state.dataMin = state.raw[0].date;
+  state.dataMax = state.raw[state.raw.length - 1].date;
+}
+
+// ============ DATE PRESETS ============
+const PRESETS = [
+  { key: 'last_7', label: 'Last 7 days' },
+  { key: 'last_30', label: 'Last 30 days' },
+  { key: 'last_90', label: 'Last 90 days' },
+  { key: 'this_month', label: 'This month' },
+  { key: 'last_month', label: 'Last month' },
+  { key: 'ytd', label: 'Year to date' },
+  { key: 'jan_2026', label: 'Januari 2026' },
+  { key: 'feb_2026', label: 'Februari 2026' },
+  { key: 'mar_2026', label: 'Maret 2026' },
+  { key: 'q1_2026', label: 'Q1 2026' },
+  { key: 'jan_2025', label: 'Januari 2025' },
+  { key: 'q1_2025', label: 'Q1 2025' },
+  { key: 'all_data', label: 'All data' },
+  { key: 'custom', label: 'Custom' },
+];
+
+function applyPreset(key) {
+  const today = state.dataMax ? ISOToDate(state.dataMax) : new Date();
+  let start, end;
+  switch (key) {
+    case 'last_7': end = today; start = addDays(today, -6); break;
+    case 'last_30': end = today; start = addDays(today, -29); break;
+    case 'last_90': end = today; start = addDays(today, -89); break;
+    case 'this_month':
+      start = new Date(today.getFullYear(), today.getMonth(), 1);
+      end = today;
+      break;
+    case 'last_month':
+      end = new Date(today.getFullYear(), today.getMonth(), 0);
+      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      break;
+    case 'ytd':
+      start = new Date(today.getFullYear(), 0, 1);
+      end = today;
+      break;
+    case 'jan_2026': start = new Date(2026, 0, 1); end = new Date(2026, 0, 31); break;
+    case 'feb_2026': start = new Date(2026, 1, 1); end = new Date(2026, 1, 28); break;
+    case 'mar_2026': start = new Date(2026, 2, 1); end = new Date(2026, 2, 31); break;
+    case 'q1_2026': start = new Date(2026, 0, 1); end = new Date(2026, 2, 31); break;
+    case 'jan_2025': start = new Date(2025, 0, 1); end = new Date(2025, 0, 31); break;
+    case 'q1_2025': start = new Date(2025, 0, 1); end = new Date(2025, 2, 31); break;
+    case 'all_data':
+      start = state.dataMin ? ISOToDate(state.dataMin) : new Date(today.getFullYear(), 0, 1);
+      end = state.dataMax ? ISOToDate(state.dataMax) : today;
+      break;
+    default:
+      start = ISOToDate(state.cur.start); end = ISOToDate(state.cur.end);
+  }
+  state.cur = { start: dateToISO(start), end: dateToISO(end), presetKey: key };
+  recomputeCompare();
+  updateDateTrigger();
+}
+
+function recomputeCompare() {
+  const cs = ISOToDate(state.cur.start), ce = ISOToDate(state.cur.end);
+  const days = daysBetween(cs, ce) + 1;
+  if (state.cmp.mode === 'previous_period') {
+    const newEnd = addDays(cs, -1);
+    const newStart = addDays(newEnd, -(days - 1));
+    state.cmp.start = dateToISO(newStart);
+    state.cmp.end = dateToISO(newEnd);
+  } else if (state.cmp.mode === 'previous_year') {
+    const newStart = new Date(cs.getFullYear() - 1, cs.getMonth(), cs.getDate());
+    const newEnd = new Date(ce.getFullYear() - 1, ce.getMonth(), ce.getDate());
+    state.cmp.start = dateToISO(newStart);
+    state.cmp.end = dateToISO(newEnd);
+  }
+}
+
+function updateDateTrigger() {
+  const presetLabel = PRESETS.find(p => p.key === state.cur.presetKey)?.label || 'Custom';
+  const html = `
+    <span class="preset-tag">${presetLabel}</span>
+    <span class="range-text">${FMT_DATE_SHORT(state.cur.start)} → ${FMT_DATE_SHORT(state.cur.end)}</span>
+    <span class="arrow">▼</span>`;
+  document.getElementById('dateTriggerInner').innerHTML = html;
+  document.getElementById('dateRangeText').textContent = `${FMT_DATE_SHORT(state.cur.start)} — ${FMT_DATE_SHORT(state.cur.end)}`;
+  const days = daysBetween(ISOToDate(state.cur.start), ISOToDate(state.cur.end)) + 1;
+  document.getElementById('daysCountText').textContent = `${days} hari`;
+
+  // Compare summary
+  const csum = document.getElementById('compareSummary');
+  if (state.cmp.enabled) {
+    csum.innerHTML = `<strong>${FMT_DATE_SHORT(state.cur.start)} → ${FMT_DATE_SHORT(state.cur.end)}</strong><span class="vs">VS</span><strong>${FMT_DATE_SHORT(state.cmp.start)} → ${FMT_DATE_SHORT(state.cmp.end)}</strong>`;
+  } else {
+    csum.innerHTML = `<strong>${FMT_DATE_SHORT(state.cur.start)} → ${FMT_DATE_SHORT(state.cur.end)}</strong> · Perbandingan tidak aktif`;
+  }
+}
+
+// ============ FILTER + AGGREGATE ============
+function filterRange(start, end) {
+  return state.raw.filter(r => r.date >= start && r.date <= end);
+}
+function sumMetric(rows, key) {
+  let s = 0;
+  for (const r of rows) s += (r.metrics[key] || 0);
+  return s;
+}
+function pct(curr, prev) {
+  if (!prev) return null;
+  return ((curr - prev) / prev) * 100;
+}
+
+// ============ KPI CARD RENDER ============
+// Pencapaian thresholds (gaya PDA):
+//   ≥100% → up (hijau, ▲)
+//   80–100% → warn (kuning, ▼)
+//   <80% → down (merah, ▼)
+function achievementHTML(real, budget) {
+  if (!budget || budget === 0) return '<span class="kpi-delta">—</span>';
+  const p = (real / budget) * 100;
+  let cls, arrow;
+  if (p >= 100) { cls = 'up'; arrow = '▲'; }
+  else if (p >= 80) { cls = 'warn'; arrow = '▼'; }
+  else { cls = 'down'; arrow = '▼'; }
+  return `<span class="kpi-delta ${cls}">${arrow} ${p.toFixed(1)}%</span>`;
+}
+function deltaHTML(p) {
+  if (p == null || isNaN(p)) return '<span class="kpi-delta">—</span>';
+  const sign = p >= 0 ? '+' : '';
+  const cls = p >= 0 ? 'up' : 'down';
+  const arrow = p >= 0 ? '▲' : '▼';
+  return `<span class="kpi-delta ${cls}">${arrow} ${sign}${p.toFixed(1)}%</span>`;
+}
+
+function renderKPICard(c) {
+  const showReal = state.display.real;
+  const showBudget = state.display.budget;
+  const hasBudget = c.budget !== undefined && c.budget !== null && c.budget !== 0;
+  const showCompare = state.cmp.enabled && c.prev !== undefined && c.prev !== null;
+
+  // Main value (Realisasi)
+  const mainFmt = c.isCurrency
+    ? `<span class="kpi-currency">Rp</span>${FMT_FULL(c.curr || 0)}`
+    : `${FMT_FULL(c.curr || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+  // Anggaran block value
+  const budgetFmt = c.isCurrency
+    ? `<span class="rp-anggaran">Rp</span>${FMT_FULL(c.budget || 0)}`
+    : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+  // Pembanding block value
+  const prevFmt = c.isCurrency
+    ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
+    : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+  // Anggaran block (gaya PDA: label + value + pencapaian)
+  const anggaranBlock = (hasBudget && showBudget) ? `
+    <div class="kpi-secondary-block kpi-anggaran-block">
+      <div class="kpi-secondary-label"><span class="dot anggaran"></span>Anggaran</div>
+      <div class="kpi-secondary-val">${budgetFmt}</div>
+      <div class="kpi-mini-compare">${achievementHTML(c.curr, c.budget)}<span class="kpi-vs">pencapaian</span></div>
+    </div>` : '';
+
+  // Pembanding block (gaya PDA: label + value + delta)
+  const pembandingBlock = showCompare ? `
+    <div class="kpi-secondary-block kpi-pembanding-block">
+      <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding</div>
+      <div class="kpi-secondary-val">${prevFmt}</div>
+      <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
+    </div>` : '';
+
+  // Jika user matikan "Realisasi" — swap main value ke Anggaran
+  if (hasBudget && !showReal && showBudget) {
+    const budgetAsMain = c.isCurrency
+      ? `<span class="kpi-currency" style="color:var(--anggaran)">Rp</span>${FMT_FULL(c.budget || 0)}`
+      : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+    return `
+      <div class="kpi-card ${c.cls || ''}">
+        <div class="kpi-label">${c.label} <span style="color:var(--anggaran);font-weight:700;">· ANGGARAN</span></div>
+        <div class="kpi-value">${budgetAsMain}</div>
+        ${pembandingBlock}
+      </div>`;
+  }
+
+  return `
+    <div class="kpi-card ${c.cls || ''}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${mainFmt}</div>
+      ${anggaranBlock}
+      ${pembandingBlock}
+    </div>`;
+}
+
+// ============ CHART HELPER ============
+function makeChart(canvasId, config) {
+  if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  charts[canvasId] = new Chart(el, config);
+}
+
+// ============ RENDER: OVERVIEW ============
+function renderOverview() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+
+  // Total pengunjung: prefer pengTotal, fallback hitung manual
+  const totalPengCur = sumMetric(cur, 'pengTotal') || (sumMetric(cur, 'pengBayar') + sumMetric(cur, 'pengTidakBayar'));
+  const totalPengCmp = sumMetric(cmp, 'pengTotal') || (sumMetric(cmp, 'pengBayar') + sumMetric(cmp, 'pengTidakBayar'));
+  const totalPengBdg = sumMetric(cur, 'pengTotal_b');
+  const totalRevCur = sumMetric(cur, 'rev');
+  const totalRevCmp = sumMetric(cmp, 'rev');
+  const totalRevBdg = sumMetric(cur, 'rev_b');
+  const arpuCur = totalPengCur > 0 ? totalRevCur / totalPengCur : 0;
+  const arpuCmp = totalPengCmp > 0 ? totalRevCmp / totalPengCmp : 0;
+  const arpuBdg = totalPengBdg > 0 ? totalRevBdg / totalPengBdg : 0;
+  const days = Math.max(1, daysBetween(ISOToDate(state.cur.start), ISOToDate(state.cur.end)) + 1);
+  const daysCmp = Math.max(1, daysBetween(ISOToDate(state.cmp.start || state.cur.start), ISOToDate(state.cmp.end || state.cur.end)) + 1);
+
+  const cards = [
+    { cls: '', label: 'TOTAL PENGUNJUNG', curr: totalPengCur, prev: state.cmp.enabled ? totalPengCmp : null, budget: totalPengBdg || null, isCurrency: false, unit: 'orang' },
+    { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: totalRevCur, prev: state.cmp.enabled ? totalRevCmp : null, budget: totalRevBdg || null, isCurrency: true },
+    { cls: 'amber', label: 'ARPU (Avg Revenue/Visitor)', curr: arpuCur, prev: state.cmp.enabled ? arpuCmp : null, budget: arpuBdg || null, isCurrency: true },
+    { cls: 'green', label: 'AVG PENGUNJUNG/HARI', curr: totalPengCur / days, prev: state.cmp.enabled ? totalPengCmp / daysCmp : null, budget: totalPengBdg ? totalPengBdg / days : null, isCurrency: false, unit: 'orang/hari' },
+  ];
+  document.getElementById('overviewKpi').innerHTML = cards.map(renderKPICard).join('');
+
+  // Insights
+  const insightsEl = document.getElementById('overviewInsights');
+  const insights = [];
+
+  // Pencapaian Pendapatan vs Anggaran (gaya PDA)
+  if (totalRevBdg > 0) {
+    const ach = (totalRevCur / totalRevBdg) * 100;
+    let type = 'positive';
+    if (ach < 80) type = 'negative';
+    else if (ach < 95) type = 'warning';
+    insights.push({
+      type, icon: ach >= 100 ? '★' : (ach >= 80 ? '◆' : '⚠'),
+      title: `Pencapaian Pendapatan ${ach.toFixed(1)}% dari Anggaran`,
+      desc: `Realisasi <strong>${FMT_RP(totalRevCur)}</strong> vs Anggaran <strong>${FMT_RP(totalRevBdg)}</strong> · Δ ${ach >= 100 ? '+' : ''}${(ach - 100).toFixed(1)}%`
+    });
+  }
+  // Pencapaian Pengunjung vs Anggaran
+  if (totalPengBdg > 0) {
+    const ach = (totalPengCur / totalPengBdg) * 100;
+    let type = 'positive';
+    if (ach < 80) type = 'negative';
+    else if (ach < 95) type = 'warning';
+    insights.push({
+      type, icon: ach >= 100 ? '★' : (ach >= 80 ? '◆' : '⚠'),
+      title: `Pencapaian Pengunjung ${ach.toFixed(1)}% dari Anggaran`,
+      desc: `Realisasi <strong>${FMT_FULL(totalPengCur)}</strong> orang vs Anggaran <strong>${FMT_FULL(totalPengBdg)}</strong> orang`
+    });
+  }
+  // YoY/Compare insights
+  if (state.cmp.enabled && totalPengCmp > 0) {
+    const pP = pct(totalPengCur, totalPengCmp);
+    const type = pP >= 0 ? 'positive' : 'negative';
+    insights.push({
+      type, icon: pP >= 0 ? '↑' : '↓',
+      title: `Pengunjung ${pP >= 0 ? 'naik' : 'turun'} ${Math.abs(pP).toFixed(1)}% vs pembanding`,
+      desc: `<strong>${FMT_FULL(totalPengCur)}</strong> orang vs <strong>${FMT_FULL(totalPengCmp)}</strong>.`
+    });
+  }
+  if (state.cmp.enabled && totalRevCmp > 0) {
+    const pR = pct(totalRevCur, totalRevCmp);
+    const type = pR >= 0 ? 'positive' : 'negative';
+    insights.push({
+      type, icon: pR >= 0 ? '↑' : '↓',
+      title: `Pendapatan ${pR >= 0 ? 'naik' : 'turun'} ${Math.abs(pR).toFixed(1)}% vs pembanding`,
+      desc: `<strong>${FMT_RP(totalRevCur)}</strong> vs <strong>${FMT_RP(totalRevCmp)}</strong>.`
+    });
+  }
+  // Best day
+  const byDate = cur.slice().sort((a, b) => (b.metrics.pengTotal || 0) - (a.metrics.pengTotal || 0));
+  if (byDate.length > 0 && byDate[0].metrics.pengTotal > 0) {
+    insights.push({
+      type: '', icon: '★',
+      title: `Hari tersibuk: ${FMT_DATE_SHORT(byDate[0].date)}`,
+      desc: `<strong>${FMT_FULL(byDate[0].metrics.pengTotal)}</strong> pengunjung dalam satu hari.`
+    });
+  }
+  // ARPU note
+  insights.push({
+    type: '', icon: '◆',
+    title: `ARPU rata-rata ${FMT_RP(arpuCur)}`,
+    desc: `Setiap pengunjung menghasilkan rata-rata <strong>${FMT_RP(arpuCur)}</strong> pendapatan selama periode ini.`
+  });
+
+  insightsEl.innerHTML = insights.map(i => `
+    <div class="insight-item ${i.type}">
+      <span class="insight-icon">${i.icon}</span>
+      <div class="insight-content"><h4>${i.title}</h4><p>${i.desc}</p></div>
+    </div>`).join('');
+}
+
+// ============ RENDER: PENGUNJUNG ============
+function renderPengunjungKpi() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const b = key => sumMetric(cur, key + '_b') || null;
+  const cards = [
+    { cls: '',     label: 'INDIVIDU BAYAR',   curr: sumMetric(cur, 'pengIndividu'),   prev: state.cmp.enabled ? sumMetric(cmp, 'pengIndividu')   : null, budget: b('pengIndividu'),   unit: 'orang' },
+    { cls: 'deep', label: 'ROMBONGAN',        curr: sumMetric(cur, 'pengRombongan'),  prev: state.cmp.enabled ? sumMetric(cmp, 'pengRombongan')  : null, budget: b('pengRombongan'),  unit: 'orang' },
+    { cls: 'green',label: 'JABODETABEK',      curr: sumMetric(cur, 'pengJabodetabek'),prev: state.cmp.enabled ? sumMetric(cmp, 'pengJabodetabek'):null, budget: b('pengJabodetabek'),unit: 'orang' },
+    { cls: '',     label: 'KHUSUS & LANGG.',  curr: sumMetric(cur, 'pengKhusus'),     prev: state.cmp.enabled ? sumMetric(cmp, 'pengKhusus')     : null, budget: b('pengKhusus'),     unit: 'orang' },
+    { cls: 'amber',label: 'TIDAK BAYAR',      curr: sumMetric(cur, 'pengTidakBayar'), prev: state.cmp.enabled ? sumMetric(cmp, 'pengTidakBayar') : null, budget: b('pengTidakBayar'), unit: 'orang' },
+  ];
+  document.getElementById('pengunjungKpi').innerHTML = cards.map(renderKPICard).join('');
+}
+
+function renderPengunjungTrend() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const m = state.pengunjungTrendMetric;
+  const keyMap = { total: 'pengTotal', individu: 'pengIndividu', rombongan: 'pengRombongan', tidakBayar: 'pengTidakBayar' };
+  const k = keyMap[m] || 'pengTotal';
+  const kb = k + '_b';
+  const showReal = state.display.real;
+  const showBudget = state.display.budget;
+
+  // Labels always from current period; comparison data aligns by position
+  const labels = cur.map(r => FMT_DATE_SHORT(r.date));
+
+  const datasets = [];
+  if (showReal) {
+    datasets.push({
+      label: 'Realisasi',
+      data: cur.map(r => r.metrics[k] || 0),
+      borderColor: '#0194F3',
+      backgroundColor: ctx => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,300); g.addColorStop(0,'rgba(1,148,243,0.35)'); g.addColorStop(1,'rgba(1,148,243,0)'); return g; },
+      borderWidth: 2.5, fill: showBudget ? false : true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5,
+    });
+  }
+  if (showBudget) {
+    datasets.push({
+      label: 'Anggaran',
+      data: cur.map(r => r.metrics[kb] || 0),
+      borderColor: '#F59E0B', borderWidth: 2.2, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 5,
+    });
+  }
+  if (state.cmp.enabled && cmp.length > 0) {
+    if (showReal) {
+      datasets.push({
+        label: 'Pembanding Realisasi', data: cmp.map(r => r.metrics[k] || 0),
+        borderColor: '#0194F3', borderWidth: 1.8, fill: false, tension: 0.3, pointRadius: 0, borderDash: [6,4]
+      });
+    }
+    if (showBudget) {
+      datasets.push({
+        label: 'Pembanding Anggaran', data: cmp.map(r => r.metrics[kb] || 0),
+        borderColor: '#F59E0B', borderWidth: 1.8, fill: false, tension: 0.3, pointRadius: 0, borderDash: [6,4]
+      });
+    }
+  }
+  makeChart('pengunjungTrend', {
+    type: 'line', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, padding: 14 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${FMT_NUM(ctx.parsed.y)} orang` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+        y: { grid: { color: '#E3E3ED' }, ticks: { callback: v => FMT_COMPACT(v), font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function renderPengunjungPie() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const showCmp = state.cmp.enabled && cmp.length > 0;
+  const KEYS   = ['pengIndividu', 'pengRombongan', 'pengTidakBayar'];
+  const LABELS = ['Individu Bayar', 'Rombongan', 'Tidak Bayar'];
+  const COLORS = ['#0194F3', '#0064D2', '#F59E0B'];
+  const dataCur = KEYS.map(k => sumMetric(cur, k));
+  const dataCmp = showCmp ? KEYS.map(k => sumMetric(cmp, k)) : null;
+  const totalCur = dataCur.reduce((a,b) => a+b, 0);
+  const totalCmp = dataCmp ? dataCmp.reduce((a,b) => a+b, 0) : 0;
+
+  const datasets = [];
+  // Outer ring = Saat Ini (selalu)
+  datasets.push({
+    label: 'Saat ini', data: dataCur,
+    backgroundColor: COLORS, borderColor: '#FFFFFF', borderWidth: 3, hoverOffset: 8, weight: 1
+  });
+  // Inner ring = Pembanding (jika comparison aktif)
+  if (showCmp) {
+    datasets.push({
+      label: 'Pembanding', data: dataCmp,
+      backgroundColor: COLORS.map(c => c + '88'), // ~53% opacity
+      borderColor: '#FFFFFF', borderWidth: 2, weight: 0.55
+    });
+  }
+
+  makeChart('pengunjungPie', {
+    type: 'doughnut',
+    data: { labels: LABELS, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const dsLabel = ctx.dataset.label || '';
+              const dsData  = ctx.dataset.data;
+              const tot = dsData.reduce((a,b)=>a+b, 0);
+              const pct = tot > 0 ? (ctx.parsed / tot * 100).toFixed(1) : '0.0';
+              return `${dsLabel} · ${ctx.label}: ${FMT_NUM(ctx.parsed)} orang (${pct}%)`;
+            }
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: 'centerText',
+      beforeDraw(chart) {
+        const { ctx, chartArea: { width, height, top } } = chart;
+        ctx.save();
+        ctx.textAlign = 'center';
+        if (showCmp) {
+          ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
+          ctx.fillText('SAAT INI', width / 2, top + height / 2 - 22);
+          ctx.fillStyle = '#1A1A1A'; ctx.font = '600 13px Nunito';
+          ctx.fillText(FMT_NUM(totalCur) + ' orang', width / 2, top + height / 2 - 7);
+          ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
+          ctx.fillText('PEMBANDING', width / 2, top + height / 2 + 12);
+          ctx.fillStyle = '#1A1A1A'; ctx.font = '600 13px Nunito';
+          ctx.fillText(FMT_NUM(totalCmp) + ' orang', width / 2, top + height / 2 + 27);
+        } else {
+          ctx.fillStyle = '#6B6B7B'; ctx.font = '500 10px JetBrains Mono';
+          ctx.fillText('TOTAL', width / 2, top + height / 2 - 10);
+          ctx.fillStyle = '#1A1A1A'; ctx.font = '600 14px Nunito';
+          ctx.fillText(FMT_NUM(totalCur) + ' orang', width / 2, top + height / 2 + 10);
+        }
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+function renderTopTiketIndividu() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const items = [
+    { label: 'Tiket Individu', key: 'tikIndividu' },
+    { label: 'Tiket Ancol.com', key: 'tikAncolCom' },
+    { label: 'Tiket E-Commerce', key: 'tikECommerce' },
+    { label: 'Foreigner Individu', key: 'tikForeigner' },
+    { label: 'Tiket Harga Khusus', key: 'tikHargaKhusus' },
+    { label: 'Bundling PDA', key: 'tikBundlingPDA' },
+    { label: 'Promo Sosro', key: 'tikPromoSosro' },
+  ];
+  const data = items.map(it => ({ label: it.label, value: sumMetric(cur, it.key) }))
+                   .sort((a,b) => b.value - a.value);
+  makeChart('topTiketIndividu', {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [{
+        label: 'Pengunjung', data: data.map(d => d.value),
+        backgroundColor: '#0194F3', borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${FMT_NUM(ctx.parsed.x)} orang` } }
+      },
+      scales: {
+        x: { grid: { color: '#E3E3ED' }, ticks: { callback: v => FMT_COMPACT(v) } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderPengunjungDow() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const agg = {}; for (let i = 0; i < 7; i++) agg[i] = { total: 0, count: 0 };
+  cur.forEach(r => {
+    const dt = ISOToDate(r.date);
+    const dow = (dt.getDay() + 6) % 7; // Senin = 0
+    agg[dow].total += (r.metrics.pengTotal || 0);
+    agg[dow].count++;
+  });
+  const avgs = [];
+  for (let i = 0; i < 7; i++) avgs.push(agg[i].count ? agg[i].total / agg[i].count : 0);
+  makeChart('pengunjungDow', {
+    type: 'bar',
+    data: {
+      labels: DOW_NAMES,
+      datasets: [{ label: 'Rata-rata Pengunjung', data: avgs, backgroundColor: '#4FB4FF', borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${FMT_NUM(ctx.parsed.y)} orang/hari` } }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#E3E3ED' }, ticks: { callback: v => FMT_COMPACT(v) } }
+      }
+    }
+  });
+}
+
+// ============ RENDER: PENDAPATAN ============
+function renderPendapatanKpi() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const b = key => sumMetric(cur, key + '_b') || null;
+  const cards = [
+    { cls: 'deep',  label: 'TOTAL PENDAPATAN',   curr: sumMetric(cur, 'rev'),         prev: state.cmp.enabled ? sumMetric(cmp, 'rev')         : null, budget: b('rev'),        isCurrency: true },
+    { cls: '',      label: 'PENDAPATAN INPARK',  curr: sumMetric(cur, 'revInpark'),   prev: state.cmp.enabled ? sumMetric(cmp, 'revInpark')   : null, budget: b('revInpark'),  isCurrency: true },
+    { cls: '',      label: 'PENDAPATAN TIKET',   curr: sumMetric(cur, 'revTiket'),    prev: state.cmp.enabled ? sumMetric(cmp, 'revTiket')    : null, budget: b('revTiket'),   isCurrency: true },
+    { cls: 'amber', label: 'PENYEWAAN',          curr: sumMetric(cur, 'rentSub'),     prev: state.cmp.enabled ? sumMetric(cmp, 'rentSub')     : null, budget: b('rentSub'),    isCurrency: true },
+    { cls: 'green', label: 'SERVICE CHARGE',     curr: sumMetric(cur, 'usaService'),  prev: state.cmp.enabled ? sumMetric(cmp, 'usaService')  : null, budget: b('usaService'), isCurrency: true },
+  ];
+  document.getElementById('pendapatanKpi').innerHTML = cards.map(renderKPICard).join('');
+}
+
+function renderPendapatanTrend() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const m = state.pendapatanTrendMetric;
+  const keyMap = { total: 'rev', tiket: 'revTiket', penyewaan: 'rentSub', usaha: 'usaService' };
+  const k = keyMap[m] || 'rev';
+  const kb = k + '_b';
+  const showReal = state.display.real;
+  const showBudget = state.display.budget;
+
+  // Labels always from current period; comparison data aligns by position
+  const labels = cur.map(r => FMT_DATE_SHORT(r.date));
+
+  const datasets = [];
+  if (showReal) {
+    datasets.push({
+      label: 'Realisasi',
+      data: cur.map(r => r.metrics[k] || 0),
+      borderColor: '#0064D2',
+      backgroundColor: ctx => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,300); g.addColorStop(0,'rgba(0,100,210,0.30)'); g.addColorStop(1,'rgba(0,100,210,0)'); return g; },
+      borderWidth: 2.5, fill: showBudget ? false : true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5,
+    });
+  }
+  if (showBudget) {
+    datasets.push({
+      label: 'Anggaran',
+      data: cur.map(r => r.metrics[kb] || 0),
+      borderColor: '#F59E0B', borderWidth: 2.2, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 5,
+    });
+  }
+  if (state.cmp.enabled && cmp.length > 0) {
+    if (showReal) {
+      datasets.push({
+        label: 'Pembanding Realisasi', data: cmp.map(r => r.metrics[k] || 0),
+        borderColor: '#0064D2', borderWidth: 1.8, fill: false, tension: 0.3, pointRadius: 0, borderDash: [6,4]
+      });
+    }
+    if (showBudget) {
+      datasets.push({
+        label: 'Pembanding Anggaran', data: cmp.map(r => r.metrics[kb] || 0),
+        borderColor: '#F59E0B', borderWidth: 1.8, fill: false, tension: 0.3, pointRadius: 0, borderDash: [6,4]
+      });
+    }
+  }
+  makeChart('pendapatanTrend', {
+    type: 'line', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, padding: 14 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${FMT_RP(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+        y: { grid: { color: '#E3E3ED' }, ticks: { callback: v => 'Rp ' + FMT_COMPACT(v), font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function renderPendapatanPie() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const showCmp = state.cmp.enabled && cmp.length > 0;
+  const LABELS = ['Tiket', 'Penyewaan', 'Usaha Rupa-rupa'];
+  const COLORS = ['#0064D2', '#0194F3', '#F59E0B'];
+  const dataCur = [ sumMetric(cur,'revTiket'), sumMetric(cur,'rentSub'), sumMetric(cur,'usaPakanIkan')+sumMetric(cur,'usaAcara')+sumMetric(cur,'usaService') ];
+  const dataCmp = showCmp ? [ sumMetric(cmp,'revTiket'), sumMetric(cmp,'rentSub'), sumMetric(cmp,'usaPakanIkan')+sumMetric(cmp,'usaAcara')+sumMetric(cmp,'usaService') ] : null;
+  const totalCur = dataCur.reduce((a,b) => a+b, 0);
+  const totalCmp = dataCmp ? dataCmp.reduce((a,b) => a+b, 0) : 0;
+
+  const datasets = [];
+  datasets.push({
+    label: 'Saat ini', data: dataCur,
+    backgroundColor: COLORS, borderColor: '#FFFFFF', borderWidth: 3, hoverOffset: 8, weight: 1
+  });
+  if (showCmp) {
+    datasets.push({
+      label: 'Pembanding', data: dataCmp,
+      backgroundColor: COLORS.map(c => c + '88'),
+      borderColor: '#FFFFFF', borderWidth: 2, weight: 0.55
+    });
+  }
+
+  makeChart('pendapatanPie', {
+    type: 'doughnut',
+    data: { labels: LABELS, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const dsLabel = ctx.dataset.label || '';
+              const dsData  = ctx.dataset.data;
+              const tot = dsData.reduce((a,b)=>a+b, 0);
+              const pct = tot > 0 ? (ctx.parsed / tot * 100).toFixed(1) : '0.0';
+              return `${dsLabel} · ${ctx.label}: ${FMT_RP(ctx.parsed)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: 'centerText',
+      beforeDraw(chart) {
+        const { ctx, chartArea: { width, height, top } } = chart;
+        ctx.save();
+        ctx.textAlign = 'center';
+        if (showCmp) {
+          ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
+          ctx.fillText('SAAT INI', width / 2, top + height / 2 - 22);
+          ctx.fillStyle = '#1A1A1A'; ctx.font = '600 12px Nunito';
+          ctx.fillText(FMT_RP(totalCur), width / 2, top + height / 2 - 7);
+          ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
+          ctx.fillText('PEMBANDING', width / 2, top + height / 2 + 12);
+          ctx.fillStyle = '#1A1A1A'; ctx.font = '600 12px Nunito';
+          ctx.fillText(FMT_RP(totalCmp), width / 2, top + height / 2 + 27);
+        } else {
+          ctx.fillStyle = '#6B6B7B'; ctx.font = '500 10px JetBrains Mono';
+          ctx.fillText('TOTAL PENDAPATAN', width / 2, top + height / 2 - 10);
+          ctx.fillStyle = '#1A1A1A'; ctx.font = '600 13px Nunito';
+          ctx.fillText(FMT_RP(totalCur), width / 2, top + height / 2 + 10);
+        }
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+function renderPenyewaanBar() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const items = [
+    { label: 'Ban', key: 'rentBan' },
+    { label: 'Gazebo/Tikar', key: 'rentGazebo' },
+    { label: 'Locker', key: 'rentLocker' },
+    { label: 'Tenda Camping', key: 'rentTenda' },
+    { label: 'Sun Lounger', key: 'rentSunLounger' },
+    { label: 'Baju Renang', key: 'rentBajuRenang' },
+  ];
+  const data = items.map(it => ({ label: it.label, value: sumMetric(cur, it.key) }))
+                   .sort((a,b) => b.value - a.value);
+  makeChart('penyewaanBar', {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [{
+        label: 'Pendapatan', data: data.map(d => d.value),
+        backgroundColor: '#F59E0B', borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => FMT_RP(ctx.parsed.x) } }
+      },
+      scales: {
+        x: { grid: { color: '#E3E3ED' }, ticks: { callback: v => 'Rp ' + FMT_COMPACT(v) } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderArpuTrend() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const showCmp = state.cmp.enabled && cmp.length > 0;
+  const labels = cur.map(r => FMT_DATE_SHORT(r.date));
+  const arpu = cur.map(r => {
+    const p = r.metrics.pengTotal || 0;
+    return p > 0 ? (r.metrics.rev || 0) / p : 0;
+  });
+  const arpuCmp = showCmp ? cmp.map(r => {
+    const p = r.metrics.pengTotal || 0;
+    return p > 0 ? (r.metrics.rev || 0) / p : 0;
+  }) : null;
+
+  const datasets = [{
+    label: 'ARPU (Saat Ini)', data: arpu,
+    borderColor: '#0BAE54',
+    backgroundColor: ctx => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,300); g.addColorStop(0,'rgba(11,174,84,0.30)'); g.addColorStop(1,'rgba(11,174,84,0)'); return g; },
+    borderWidth: 2.5, fill: !showCmp, tension: 0.3, pointRadius: 0, pointHoverRadius: 5,
+  }];
+  if (showCmp) {
+    datasets.push({
+      label: 'ARPU (Pembanding)', data: arpuCmp,
+      borderColor: '#0BAE54', borderWidth: 1.8, fill: false, tension: 0.3, pointRadius: 0, borderDash: [6,4]
+    });
+  }
+
+  makeChart('arpuTrend', {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: showCmp, position: 'top', align: 'end', labels: { boxWidth: 10, padding: 12, font: { size: 10 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${FMT_RP(ctx.parsed.y)} per pengunjung` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 10 } } },
+        y: { grid: { color: '#E3E3ED' }, ticks: { callback: v => 'Rp ' + FMT_NUM(v) } }
+      }
+    }
+  });
+}
+
+// ============ DATA TABLES ============
+function buildDataTables() {
+  const cur = filterRange(state.cur.start, state.cur.end);
+  const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
+  const showCmp = state.cmp.enabled && cmp.length > 0;
+  const showBudget = state.display.budget;
+
+  // Struktur tabel mengikuti format LH Atlantis (gambar 10-04-15 & 10-04-40 Bob).
+  //   header   = section heading (I. PENGUNJUNG, II. PENDAPATAN, dst.)
+  //   group    = group header dengan akun (4201-10.44 INDIVIDU, dst.)
+  //   sub_head = sub-grouping (Rombongan, Pengunjung Jabodetabek, dst.) — non-data
+  //   item     = baris detail
+  //   sub      = subtotal level menengah
+  //   total    = total/JUMLAH highlighted
+  const rows = [
+    { type: 'header', label: 'I. PENGUNJUNG' },
+    // 4201-10.44 (Tiket Individu)
+    { type: 'group', akun: '4201-10.44', label: 'INDIVIDU (Tiket Reguler & Bundling)' },
+    { type: 'item', no: 1,  key: 'tikMasuk' },
+    { type: 'item', no: 2,  key: 'tikIndividu' },
+    { type: 'item', no: 3,  key: 'tikForeigner' },
+    { type: 'item', no: 4,  key: 'tikHargaKhusus' },
+    { type: 'item', no: 5,  key: 'tikBundlingAwaSwa' },
+    { type: 'item', no: 6,  key: 'tikBundlingSwaAwa' },
+    { type: 'item', no: 7,  key: 'tikBundlingAwaOds' },
+    { type: 'item', no: 8,  key: 'tikBundlingOdsAwa' },
+    { type: 'item', no: 9,  key: 'tikBundlingAwaDufan' },
+    { type: 'item', no: 10, key: 'tikBundlingDufanAwa' },
+    { type: 'item', no: 11, key: 'tikBundlingAwaJbl' },
+    { type: 'item', no: 12, key: 'tikForeignerAwaJbl' },
+    { type: 'item', no: 13, key: 'tikForeignerAwaSwa' },
+    { type: 'item', no: 14, key: 'tikBundlingPDA' },
+    { type: 'item', no: 15, key: 'tikPromoSosro' },
+    { type: 'item', no: 16, key: 'tikECommerce' },
+    { type: 'item', no: 17, key: 'tikAncolCom' },
+    { type: 'sub',  key: 'tikSubTiket', codeLeft: 'Sub Total' },
+    // 4201-15.44 (AVC)
+    { type: 'group', akun: '4201-15.44', label: 'INDIVIDU (Annual Value Card)' },
+    { type: 'item', no: 1, key: 'avcWeekday' },
+    { type: 'item', no: 2, key: 'avcAllday' },
+    { type: 'item', no: 3, key: 'avc6Bulan' },
+    { type: 'item', no: 4, key: 'avc3Bulan' },
+    { type: 'item', no: 5, key: 'avcECommerce' },
+    { type: 'item', no: 6, key: 'avcAncolCom' },
+    { type: 'item', no: 7, key: 'avcForeigner' },
+    { type: 'item', no: 8, key: 'avcForeigner6Month' },
+    { type: 'sub',  key: 'avcSubTotal', codeLeft: 'Sub Total' },
+    { type: 'total', key: 'pengIndividu' },
+    // Rombongan
+    { type: 'sub_head', label: 'Rombongan' },
+    { type: 'sub_head', label: '— Pengunjung Jabodetabek' },
+    { type: 'item', no: 1, key: 'jaboPelajarSek',   labelOverride: 'Pelajar/Sekolah' },
+    { type: 'item', no: 2, key: 'jaboUmum',         labelOverride: 'Umum/Perusahaan' },
+    { type: 'item', no: 3, key: 'jaboLangg',        labelOverride: 'Langg. Sekolah' },
+    { type: 'item', no: 4, key: 'jaboOnline',       labelOverride: 'Online' },
+    { type: 'sub',  key: 'pengJabodetabek' },
+    // 4201-40.44 Rombongan Agen
+    { type: 'group', akun: '4201-40.44', label: 'PENGUNJUNG ROMBONGAN AGEN' },
+    { type: 'item', no: 1, key: 'agenPelajarSek',   labelOverride: 'Pelajar/Sekolah' },
+    { type: 'item', no: 2, key: 'agenUmum',         labelOverride: 'Umum/Perusahaan' },
+    { type: 'sub',  key: 'pengRombAgen' },
+    // Khusus & Langganan
+    { type: 'sub_head', label: 'Pengunjung Khusus & Langganan' },
+    { type: 'item', no: 1, key: 'klCardPelajar' },
+    { type: 'item', no: 2, key: 'klCardUmum' },
+    { type: 'item', no: 3, key: 'klCardUmumMobil' },
+    { type: 'item', no: 4, key: 'klKartu' },
+    { type: 'sub',  key: 'pengKhusus' },
+    { type: 'sub',  key: 'pengRombongan' },
+    { type: 'total', key: 'pengBayar' },
+    // Tidak Bayar
+    { type: 'sub_head', label: 'Pengunjung Tidak Bayar' },
+    { type: 'item', no: 1, key: 'tbRepeater' },
+    { type: 'item', no: 2, key: 'tbRk' },
+    { type: 'sub',  key: 'pengTidakBayar' },
+    { type: 'total', key: 'pengTotal' },
+
+    { type: 'header', label: 'II. PENDAPATAN' },
+    // 4201-10.44 (Pendapatan Individu)
+    { type: 'group', akun: '4201-10.44', label: 'PENDAPATAN INDIVIDU (Tiket Reguler & Bundling)' },
+    { type: 'item', no: 1,  key: 'revTikMasuk' },
+    { type: 'item', no: 2,  key: 'revTikIndividu' },
+    { type: 'item', no: 3,  key: 'revTikForeigner' },
+    { type: 'item', no: 4,  key: 'revTikHargaKhusus' },
+    { type: 'item', no: 5,  key: 'revTikBundlingAwaSwa' },
+    { type: 'item', no: 6,  key: 'revTikBundlingSwaAwa' },
+    { type: 'item', no: 7,  key: 'revTikBundlingAwaOds' },
+    { type: 'item', no: 8,  key: 'revTikBundlingOdsAwa' },
+    { type: 'item', no: 9,  key: 'revTikBundlingAwaDufan' },
+    { type: 'item', no: 10, key: 'revTikBundlingDufanAwa' },
+    { type: 'item', no: 11, key: 'revTikBundlingAwaJbl' },
+    { type: 'item', no: 12, key: 'revTikForeignerAwaJbl' },
+    { type: 'item', no: 13, key: 'revTikForeignerAwaSwa' },
+    { type: 'item', no: 14, key: 'revTikBundlingPDA' },
+    { type: 'item', no: 15, key: 'revTikPromoSosro' },
+    { type: 'item', no: 16, key: 'revTikECommerce' },
+    { type: 'item', no: 17, key: 'revTikAncolCom' },
+    { type: 'sub',  key: 'revTikSubTotal', codeLeft: 'Sub Total' },
+    // AVC Pendapatan (still under 4201-10.44 in pendapatan, mirroring screenshot)
+    { type: 'item', no: 1, key: 'revAvcWeekday' },
+    { type: 'item', no: 2, key: 'revAvcAllday' },
+    { type: 'item', no: 3, key: 'revAvc6Bulan' },
+    { type: 'item', no: 4, key: 'revAvc3Bulan' },
+    { type: 'item', no: 5, key: 'revAvcECommerce' },
+    { type: 'item', no: 6, key: 'revAvcAncolCom' },
+    { type: 'item', no: 7, key: 'revAvcForeigner' },
+    { type: 'item', no: 8, key: 'revAvcForeigner6Month' },
+    { type: 'sub',  key: 'revAvcSubTotal', codeLeft: 'Sub Total' },
+    { type: 'total', key: 'revIndividu' },
+    // Rombongan Pendapatan
+    { type: 'sub_head', label: 'Rombongan' },
+    { type: 'sub_head', label: '— Pendapatan Jabodetabek' },
+    { type: 'item', no: 1, key: 'revJaboPelajarSek', labelOverride: 'Pelajar/Sekolah' },
+    { type: 'item', no: 2, key: 'revJaboUmum',       labelOverride: 'Umum/Perusahaan' },
+    { type: 'item', no: 3, key: 'revJaboLangg',      labelOverride: 'Langg. Sekolah' },
+    { type: 'item', no: 4, key: 'revJaboOnline',     labelOverride: 'Online' },
+    { type: 'sub',  key: 'revJabodetabek' },
+    { type: 'group', akun: '4201-40.44', label: 'PENDAPATAN ROMBONGAN AGEN' },
+    { type: 'item', no: 1, key: 'revAgenPelajarSek', labelOverride: 'Pelajar/Sekolah' },
+    { type: 'item', no: 2, key: 'revAgenUmum',       labelOverride: 'Umum/Perusahaan' },
+    { type: 'sub',  key: 'revRombAgen' },
+    { type: 'sub_head', label: 'Pendapatan Khusus & Langganan' },
+    { type: 'item', no: 1, key: 'revKlCardPelajar' },
+    { type: 'item', no: 2, key: 'revKlCardUmum' },
+    { type: 'item', no: 3, key: 'revKlCardUmumMobil' },
+    { type: 'item', no: 4, key: 'revKlKartu' },
+    { type: 'sub',  key: 'revKhusus' },
+    { type: 'sub',  key: 'revRombongan' },
+    { type: 'total', key: 'revTiket' },
+    // 4201-20.44 Penyewaan
+    { type: 'group', akun: '4201-20.44', label: 'PENYEWAAN' },
+    { type: 'item', no: 1, key: 'rentBan' },
+    { type: 'item', no: 2, key: 'rentGazebo' },
+    { type: 'item', no: 3, key: 'rentLocker' },
+    { type: 'item', no: 4, key: 'rentTenda' },
+    { type: 'item', no: 5, key: 'rentSunLounger' },
+    { type: 'item', no: 6, key: 'rentBajuRenang' },
+    { type: 'sub',  key: 'rentSub' },
+    // Usaha Rupa-rupa & lainnya
+    { type: 'item', akun: '4250-01.44', key: 'usaRupaRupa' },
+    { type: 'item', akun: '4250-01.44', key: 'usaPakanIkan' },
+    { type: 'item', akun: '4175-01.44', key: 'usaAcara' },
+    { type: 'item', akun: '4205-15.44', key: 'usaService' },
+    { type: 'sub',  key: 'revInpark' },
+    { type: 'total', key: 'rev' },
+  ];
+
+  // Helpers
+  function findMetric(k) { return METRICS.find(m => m.key === k); }
+
+  // Header
+  const headerCols = ['<th class="dt-akun-head">Akun</th>', '<th class="dt-label-head">URAIAN</th>', '<th>Realisasi</th>'];
+  if (showBudget) { headerCols.push('<th>Anggaran</th>'); headerCols.push('<th>Pencapaian</th>'); }
+  if (showCmp) { headerCols.push('<th>Pembanding</th>'); headerCols.push('<th>Δ %</th>'); }
+  const colspan = headerCols.length;
+  const headerRowHTML = `<tr>${headerCols.join('')}</tr>`;
+
+  let bodyHTML = '';
+  for (const r of rows) {
+    if (r.type === 'header') {
+      bodyHTML += `<tr class="dt-section-head"><td class="dt-label" colspan="${colspan}">${r.label}</td></tr>`;
+      continue;
+    }
+    if (r.type === 'group') {
+      bodyHTML += `<tr class="dt-group-head"><td class="dt-akun">${r.akun || ''}</td><td class="dt-label" colspan="${colspan-1}">${r.label}</td></tr>`;
+      continue;
+    }
+    if (r.type === 'sub_head') {
+      bodyHTML += `<tr class="dt-subhead"><td class="dt-akun"></td><td class="dt-label" colspan="${colspan-1}">${r.label}</td></tr>`;
+      continue;
+    }
+
+    const meta = r.key ? findMetric(r.key) : null;
+    const label = r.labelOverride || (meta ? meta.label : r.label) || '';
+    const isCur = r.key ? CURRENCY_KEYS.has(r.key) : false;
+    const fmt = v => isCur ? FMT_RP(v) : FMT_NUM(v) + ' orang';
+    const cv = r.key ? sumMetric(cur, r.key) : 0;
+    const bv = r.key ? sumMetric(cur, r.key + '_b') : 0;
+
+    // Left cell content: row.no (item number), atau akun code, atau codeLeft
+    let akunCell = '';
+    if (r.akun) akunCell = r.akun;
+    else if (r.codeLeft) akunCell = r.codeLeft;
+    else if (r.no != null) akunCell = String(r.no);
+
+    const trCls = r.type === 'total' ? 'dt-total' : (r.type === 'sub' ? 'dt-sub' : 'dt-item');
+    const indentCls = r.type === 'item' ? 'dt-indent-1' : '';
+
+    const cells = [
+      `<td class="dt-akun">${akunCell}</td>`,
+      `<td class="dt-label"><span class="${indentCls}">${label}</span></td>`,
+      `<td>${fmt(cv)}</td>`
+    ];
+    if (showBudget) {
+      cells.push(`<td>${bv > 0 ? fmt(bv) : '—'}</td>`);
+      if (bv > 0) {
+        const p = (cv / bv) * 100;
+        const pCls = p >= 100 ? 'pct-up' : (p < 80 ? 'pct-down' : 'pct-warn');
+        cells.push(`<td class="${pCls}">${p.toFixed(1)}%</td>`);
+      } else {
+        cells.push('<td>—</td>');
+      }
+    }
+    if (showCmp) {
+      const pv = r.key ? sumMetric(cmp, r.key) : 0;
+      const p = pct(cv, pv);
+      const pCls = p == null ? '' : (p >= 0 ? 'pct-up' : 'pct-down');
+      const pTxt = p == null ? '—' : (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
+      cells.push(`<td>${fmt(pv)}</td>`);
+      cells.push(`<td class="${pCls}">${pTxt}</td>`);
+    }
+    bodyHTML += `<tr class="${trCls}">${cells.join('')}</tr>`;
+  }
+
+  document.getElementById('dataTablesContainer').innerHTML = `
+    <div class="dt-wrap">
+      <div class="dt-title">Ringkasan Atlantis Water Adventure</div>
+      <div class="dt-subtitle">Aggregated values · ${FMT_DATE_SHORT(state.cur.start)} → ${FMT_DATE_SHORT(state.cur.end)}${showCmp ? ' vs ' + FMT_DATE_SHORT(state.cmp.start) + ' → ' + FMT_DATE_SHORT(state.cmp.end) : ''}</div>
+      <div class="dt-scroll">
+        <table class="dt"><thead>${headerRowHTML}</thead><tbody>${bodyHTML}</tbody></table>
+      </div>
+    </div>`;
+}
+
+// ============ MASTER RENDER ============
+function renderAll() {
+  if (state.raw.length === 0) return;
+  updateDateTrigger();
+  renderOverview();
+  renderPengunjungKpi();
+  renderPengunjungTrend();
+  renderPengunjungPie();
+  renderTopTiketIndividu();
+  renderPengunjungDow();
+  renderPendapatanKpi();
+  renderPendapatanTrend();
+  renderPendapatanPie();
+  renderPenyewaanBar();
+  renderArpuTrend();
+  buildDataTables();
+  const dt = new Date();
+  document.getElementById('lastUpdate').textContent = `Last render: ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+}
+
+// ============ DATE POPOVER ============
+const popoverDraft = { cur: { ...state.cur }, cmp: { ...state.cmp } };
+
+function buildPresetList() {
+  const ul = document.getElementById('presetList');
+  ul.innerHTML = PRESETS.map(p => `<div class="preset-item ${state.cur.presetKey === p.key ? 'active' : ''}" data-key="${p.key}">${p.label}</div>`).join('');
+  ul.querySelectorAll('.preset-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.dataset.key;
+      if (k === 'custom') {
+        popoverDraft.cur.presetKey = 'custom';
+      } else {
+        const today = state.dataMax ? ISOToDate(state.dataMax) : new Date();
+        let s, e;
+        switch (k) {
+          case 'last_7': e = today; s = addDays(today, -6); break;
+          case 'last_30': e = today; s = addDays(today, -29); break;
+          case 'last_90': e = today; s = addDays(today, -89); break;
+          case 'this_month': s = new Date(today.getFullYear(), today.getMonth(), 1); e = today; break;
+          case 'last_month': e = new Date(today.getFullYear(), today.getMonth(), 0); s = new Date(today.getFullYear(), today.getMonth() - 1, 1); break;
+          case 'ytd': s = new Date(today.getFullYear(), 0, 1); e = today; break;
+          case 'jan_2026': s = new Date(2026,0,1); e = new Date(2026,0,31); break;
+          case 'feb_2026': s = new Date(2026,1,1); e = new Date(2026,1,28); break;
+          case 'mar_2026': s = new Date(2026,2,1); e = new Date(2026,2,31); break;
+          case 'q1_2026': s = new Date(2026,0,1); e = new Date(2026,2,31); break;
+          case 'jan_2025': s = new Date(2025,0,1); e = new Date(2025,0,31); break;
+          case 'q1_2025': s = new Date(2025,0,1); e = new Date(2025,2,31); break;
+          case 'all_data':
+            s = state.dataMin ? ISOToDate(state.dataMin) : new Date(today.getFullYear(),0,1);
+            e = state.dataMax ? ISOToDate(state.dataMax) : today;
+            break;
+        }
+        popoverDraft.cur = { start: dateToISO(s), end: dateToISO(e), presetKey: k };
+        recomputeDraftCompare();
+      }
+      syncPopoverUI();
+    });
+  });
+}
+function recomputeDraftCompare() {
+  const cs = ISOToDate(popoverDraft.cur.start), ce = ISOToDate(popoverDraft.cur.end);
+  const days = daysBetween(cs, ce) + 1;
+  if (popoverDraft.cmp.mode === 'previous_period') {
+    const ne = addDays(cs, -1); const ns = addDays(ne, -(days-1));
+    popoverDraft.cmp.start = dateToISO(ns); popoverDraft.cmp.end = dateToISO(ne);
+  } else if (popoverDraft.cmp.mode === 'previous_year') {
+    const ns = new Date(cs.getFullYear()-1, cs.getMonth(), cs.getDate());
+    const ne = new Date(ce.getFullYear()-1, ce.getMonth(), ce.getDate());
+    popoverDraft.cmp.start = dateToISO(ns); popoverDraft.cmp.end = dateToISO(ne);
+  }
+}
+function syncPopoverUI() {
+  document.getElementById('curStartInput').value = popoverDraft.cur.start;
+  document.getElementById('curEndInput').value = popoverDraft.cur.end;
+  document.getElementById('cmpStartInput').value = popoverDraft.cmp.start;
+  document.getElementById('cmpEndInput').value = popoverDraft.cmp.end;
+  document.getElementById('compareToggle').classList.toggle('on', popoverDraft.cmp.enabled);
+  document.getElementById('compareModeSelect').value = popoverDraft.cmp.mode;
+  document.querySelectorAll('.preset-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.key === popoverDraft.cur.presetKey);
+  });
+}
+function openPopover() {
+  Object.assign(popoverDraft.cur, state.cur);
+  Object.assign(popoverDraft.cmp, state.cmp);
+  syncPopoverUI();
+  const trigger = document.getElementById('dateTrigger');
+  const rect = trigger.getBoundingClientRect();
+  const pop = document.getElementById('datePopover');
+  pop.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+  pop.style.left = Math.max(20, rect.left + window.scrollX) + 'px';
+  pop.classList.add('open');
+  document.getElementById('popoverBackdrop').classList.add('open');
+  trigger.classList.add('open');
+}
+function closePopover() {
+  document.getElementById('datePopover').classList.remove('open');
+  document.getElementById('popoverBackdrop').classList.remove('open');
+  document.getElementById('dateTrigger').classList.remove('open');
+}
+
+// ============ EVENT BINDINGS ============
+document.getElementById('refreshBtn').addEventListener('click', async () => {
+  const ok = await fetchData();
+  if (ok) renderAll();
+});
+document.getElementById('dateTrigger').addEventListener('click', openPopover);
+document.getElementById('popoverBackdrop').addEventListener('click', closePopover);
+document.getElementById('curStartInput').addEventListener('change', e => { popoverDraft.cur.start = e.target.value; popoverDraft.cur.presetKey = 'custom'; recomputeDraftCompare(); syncPopoverUI(); });
+document.getElementById('curEndInput').addEventListener('change', e => { popoverDraft.cur.end = e.target.value; popoverDraft.cur.presetKey = 'custom'; recomputeDraftCompare(); syncPopoverUI(); });
+document.getElementById('cmpStartInput').addEventListener('change', e => { popoverDraft.cmp.start = e.target.value; popoverDraft.cmp.mode = 'custom'; syncPopoverUI(); });
+document.getElementById('cmpEndInput').addEventListener('change', e => { popoverDraft.cmp.end = e.target.value; popoverDraft.cmp.mode = 'custom'; syncPopoverUI(); });
+document.getElementById('compareToggle').addEventListener('click', () => { popoverDraft.cmp.enabled = !popoverDraft.cmp.enabled; syncPopoverUI(); });
+document.getElementById('compareModeSelect').addEventListener('change', e => { popoverDraft.cmp.mode = e.target.value; if (e.target.value !== 'custom') recomputeDraftCompare(); syncPopoverUI(); });
+document.getElementById('cancelBtn').addEventListener('click', closePopover);
+document.getElementById('applyBtn').addEventListener('click', () => {
+  state.cur = { ...popoverDraft.cur };
+  state.cmp = { ...popoverDraft.cmp };
+  closePopover(); renderAll();
+});
+
+document.querySelectorAll('#pengunjungTrendPills .metric-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#pengunjungTrendPills .metric-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.pengunjungTrendMetric = btn.dataset.metric; renderPengunjungTrend();
+  });
+});
+document.querySelectorAll('#pendapatanTrendPills .metric-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#pendapatanTrendPills .metric-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.pendapatanTrendMetric = btn.dataset.metric; renderPendapatanTrend();
+  });
+});
+
+// Display toggles (Realisasi / Anggaran)
+function _updateToggleUI() {
+  document.getElementById('toggleRealisasiLabel').classList.toggle('active', state.display.real);
+  document.getElementById('toggleAnggaranLabel').classList.toggle('active', state.display.budget);
+}
+document.getElementById('toggleRealisasi').addEventListener('change', e => {
+  if (!e.target.checked && !state.display.budget) {
+    e.target.checked = true;
+    showToast('Minimal satu pilihan harus aktif', 'error');
+    return;
+  }
+  state.display.real = e.target.checked;
+  _updateToggleUI();
+  renderAll();
+});
+document.getElementById('toggleAnggaran').addEventListener('change', e => {
+  if (!e.target.checked && !state.display.real) {
+    e.target.checked = true;
+    showToast('Minimal satu pilihan harus aktif', 'error');
+    return;
+  }
+  state.display.budget = e.target.checked;
+  _updateToggleUI();
+  renderAll();
+});
+
+buildPresetList();
+applyPreset('jan_2026');
+
+// ============ INIT ============
+(async function init() {
+  const ok = await fetchData();
+  if (ok) {
+    // Pilih preset default yang reasonable berdasar data tersedia
+    if (state.dataMax) {
+      const maxDate = ISOToDate(state.dataMax);
+      // Default ke bulan terakhir yang ada data
+      const monthStart = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+      state.cur = { start: dateToISO(monthStart), end: state.dataMax, presetKey: 'this_month' };
+      recomputeCompare();
+    }
+    buildPresetList();
+    renderAll();
+  } else {
+    // Tetap render UI shell walau data gagal load
+    updateDateTrigger();
+  }
+})();
+</script>
+</body>
+</html>
