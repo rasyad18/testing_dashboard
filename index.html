@@ -2225,20 +2225,23 @@
       const totalPengCur = sumMetric(cur, 'totPeng');
       const totalPengCmp = sumMetric(cmp, 'totPeng');
       const totalPengBdg = sumMetric(cur, 'totPeng_b');
+      const totalPengCmpBdg = sumMetric(cmp, 'totPeng_b');
       const totalRevCur = sumMetric(cur, 'totRev');
       const totalRevCmp = sumMetric(cmp, 'totRev');
       const totalRevBdg = sumMetric(cur, 'totRev_b');
+      const totalRevCmpBdg = sumMetric(cmp, 'totRev_b');
       const arpuCur = totalPengCur > 0 ? totalRevCur / totalPengCur : 0;
       const arpuCmp = totalPengCmp > 0 ? totalRevCmp / totalPengCmp : 0;
       const arpuBdg = totalPengBdg > 0 ? totalRevBdg / totalPengBdg : 0;
+      const arpuCmpBdg = totalPengCmpBdg > 0 ? totalRevCmpBdg / totalPengCmpBdg : 0;
       const days = Math.max(1, daysBetween(ISOToDate(state.cur.start), ISOToDate(state.cur.end)) + 1);
       const daysCmp = Math.max(1, daysBetween(ISOToDate(state.cmp.start || state.cur.start), ISOToDate(state.cmp.end || state.cur.end)) + 1);
 
       const cards = [
-        { cls: '', label: 'TOTAL PENGUNJUNG', curr: totalPengCur, prev: state.cmp.enabled ? totalPengCmp : null, budget: totalPengBdg || null, isCurrency: false, unit: 'orang' },
-        { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: totalRevCur, prev: state.cmp.enabled ? totalRevCmp : null, budget: totalRevBdg || null, isCurrency: true },
-        { cls: 'amber', label: 'ARPU (Avg Revenue/Visitor)', curr: arpuCur, prev: state.cmp.enabled ? arpuCmp : null, budget: arpuBdg || null, isCurrency: true },
-        { cls: 'green', label: 'AVG PENGUNJUNG/HARI', curr: totalPengCur / days, prev: state.cmp.enabled ? totalPengCmp / daysCmp : null, budget: totalPengBdg ? totalPengBdg / days : null, isCurrency: false, unit: 'orang/hari' },
+        { cls: '', label: 'TOTAL PENGUNJUNG', curr: totalPengCur, prev: state.cmp.enabled ? totalPengCmp : null, prevBudget: state.cmp.enabled ? totalPengCmpBdg : null, budget: totalPengBdg || null, isCurrency: false, unit: 'orang' },
+        { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: totalRevCur, prev: state.cmp.enabled ? totalRevCmp : null, prevBudget: state.cmp.enabled ? totalRevCmpBdg : null, budget: totalRevBdg || null, isCurrency: true },
+        { cls: 'amber', label: 'ARPU (Avg Revenue/Visitor)', curr: arpuCur, prev: state.cmp.enabled ? arpuCmp : null, prevBudget: state.cmp.enabled ? arpuCmpBdg : null, budget: arpuBdg || null, isCurrency: true },
+        { cls: 'green', label: 'AVG PENGUNJUNG/HARI', curr: totalPengCur / days, prev: state.cmp.enabled ? totalPengCmp / daysCmp : null, prevBudget: state.cmp.enabled ? (totalPengCmpBdg ? totalPengCmpBdg / daysCmp : null) : null, budget: totalPengBdg ? totalPengBdg / days : null, isCurrency: false, unit: 'orang/hari' },
       ];
       document.getElementById('overviewKpi').innerHTML = cards.map(renderKPICard).join('');
 
@@ -2306,12 +2309,13 @@
       const cur = filterRange(state.cur.start, state.cur.end);
       const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
       const b = key => sumMetric(cur, key + '_b') || null;
+      const pb = key => sumMetric(cmp, key + '_b') || null;
       const cards = [
-        { cls: '', label: 'INDIVIDU REGULER', curr: sumMetric(cur, 'subIndReg'), prev: state.cmp.enabled ? sumMetric(cmp, 'subIndReg') : null, budget: b('subIndReg'), unit: 'orang' },
-        { cls: 'deep', label: 'PREMIUM DUFAN', curr: sumMetric(cur, 'subPrem'), prev: state.cmp.enabled ? sumMetric(cmp, 'subPrem') : null, budget: b('subPrem'), unit: 'orang' },
-        { cls: 'green', label: 'ANNUAL PASS', curr: sumMetric(cur, 'subAp'), prev: state.cmp.enabled ? sumMetric(cmp, 'subAp') : null, budget: b('subAp'), unit: 'orang' },
-        { cls: '', label: 'ROMBONGAN', curr: sumMetric(cur, 'totRomb'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRomb') : null, budget: b('totRomb'), unit: 'orang' },
-        { cls: 'amber', label: 'REPEATER + T. BAYAR', curr: sumMetric(cur, 'pRepeater') + sumMetric(cur, 'pTidakBayar'), prev: state.cmp.enabled ? sumMetric(cmp, 'pRepeater') + sumMetric(cmp, 'pTidakBayar') : null, budget: (b('pRepeater') || 0) + (b('pTidakBayar') || 0) || null, unit: 'orang' },
+        { cls: '', label: 'INDIVIDU REGULER', curr: sumMetric(cur, 'subIndReg'), prev: state.cmp.enabled ? sumMetric(cmp, 'subIndReg') : null, prevBudget: state.cmp.enabled ? pb('subIndReg') : null, budget: b('subIndReg'), unit: 'orang' },
+        { cls: 'deep', label: 'PREMIUM DUFAN', curr: sumMetric(cur, 'subPrem'), prev: state.cmp.enabled ? sumMetric(cmp, 'subPrem') : null, prevBudget: state.cmp.enabled ? pb('subPrem') : null, budget: b('subPrem'), unit: 'orang' },
+        { cls: 'green', label: 'ANNUAL PASS', curr: sumMetric(cur, 'subAp'), prev: state.cmp.enabled ? sumMetric(cmp, 'subAp') : null, prevBudget: state.cmp.enabled ? pb('subAp') : null, budget: b('subAp'), unit: 'orang' },
+        { cls: '', label: 'ROMBONGAN', curr: sumMetric(cur, 'totRomb'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRomb') : null, prevBudget: state.cmp.enabled ? pb('totRomb') : null, budget: b('totRomb'), unit: 'orang' },
+        { cls: 'amber', label: 'REPEATER + T. BAYAR', curr: sumMetric(cur, 'pRepeater') + sumMetric(cur, 'pTidakBayar'), prev: state.cmp.enabled ? sumMetric(cmp, 'pRepeater') + sumMetric(cmp, 'pTidakBayar') : null, prevBudget: state.cmp.enabled ? (pb('pRepeater') + pb('pTidakBayar')) : null, budget: (b('pRepeater') || 0) + (b('pTidakBayar') || 0) || null, unit: 'orang' },
       ];
       document.getElementById('pengunjungKpi').innerHTML = cards.map(renderKPICard).join('');
     }
@@ -2380,26 +2384,38 @@
       const cur = filterRange(state.cur.start, state.cur.end);
       const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
       const showCmp = state.cmp.enabled && cmp.length > 0;
+      const showBudget = state.display.budget;
       const KEYS = ['subIndReg', 'subPrem', 'subAp', 'pRepeater', 'totRomb', 'pTidakBayar'];
       const LABELS = ['Individu Reguler', 'Premium Dufan', 'Annual Pass', 'Repeater', 'Rombongan', 'Tidak Bayar'];
       const COLORS = ['#0194F3', '#0064D2', '#4FB4FF', '#9FD6FF', '#0BAE54', '#F59E0B'];
       const dataCur = KEYS.map(k => sumMetric(cur, k));
+      const dataCurBdg = showBudget ? KEYS.map(k => sumMetric(cur, k + '_b')) : null;
       const dataCmp = showCmp ? KEYS.map(k => sumMetric(cmp, k)) : null;
+      const dataCmpBdg = showCmp && showBudget ? KEYS.map(k => sumMetric(cmp, k + '_b')) : null;
       const totalCur = dataCur.reduce((a, b) => a + b, 0);
       const totalCmp = dataCmp ? dataCmp.reduce((a, b) => a + b, 0) : 0;
 
       const datasets = [];
-      // Outer ring = Saat Ini (selalu)
+      if (showBudget) {
+        datasets.push({
+          label: 'Anggaran Saat Ini', data: dataCurBdg,
+          backgroundColor: COLORS.map(c => c + '88'), borderColor: '#FFFFFF', borderWidth: 3, hoverOffset: 4, weight: 1.2
+        });
+      }
       datasets.push({
-        label: 'Saat ini', data: dataCur,
+        label: 'Realisasi Saat Ini', data: dataCur,
         backgroundColor: COLORS, borderColor: '#FFFFFF', borderWidth: 3, hoverOffset: 8, weight: 1
       });
-      // Inner ring = Pembanding (jika comparison aktif)
       if (showCmp) {
+        if (showBudget) {
+          datasets.push({
+            label: 'Anggaran Pembanding', data: dataCmpBdg,
+            backgroundColor: COLORS.map(c => c + '33'), borderColor: '#FFFFFF', borderWidth: 2, hoverOffset: 2, weight: 0.8
+          });
+        }
         datasets.push({
-          label: 'Pembanding', data: dataCmp,
-          backgroundColor: COLORS.map(c => c + '88'), // ~53% opacity
-          borderColor: '#FFFFFF', borderWidth: 2, weight: 0.55
+          label: showBudget ? 'Realisasi Pembanding' : 'Pembanding', data: dataCmp,
+          backgroundColor: COLORS.map(c => c + '55'), borderColor: '#FFFFFF', borderWidth: 2, hoverOffset: 2, weight: 0.6
         });
       }
 
@@ -2431,13 +2447,13 @@
             ctx.textAlign = 'center';
             if (showCmp) {
               ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
-              ctx.fillText('SAAT INI', width / 2, top + height / 2 - 22);
+              ctx.fillText('SAAT INI', width / 2, top + height / 2 - 26);
               ctx.fillStyle = '#1A1A1A'; ctx.font = '600 13px Nunito';
-              ctx.fillText(FMT_NUM(totalCur) + ' orang', width / 2, top + height / 2 - 7);
+              ctx.fillText(FMT_NUM(totalCur) + ' orang', width / 2, top + height / 2 - 10);
               ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
-              ctx.fillText('PEMBANDING', width / 2, top + height / 2 + 12);
+              ctx.fillText('PEMBANDING', width / 2, top + height / 2 + 8);
               ctx.fillStyle = '#1A1A1A'; ctx.font = '600 13px Nunito';
-              ctx.fillText(FMT_NUM(totalCmp) + ' orang', width / 2, top + height / 2 + 27);
+              ctx.fillText(FMT_NUM(totalCmp) + ' orang', width / 2, top + height / 2 + 24);
             } else {
               ctx.fillStyle = '#6B6B7B'; ctx.font = '500 10px JetBrains Mono';
               ctx.fillText('TOTAL', width / 2, top + height / 2 - 10);
@@ -2517,12 +2533,13 @@
       const cur = filterRange(state.cur.start, state.cur.end);
       const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
       const b = key => sumMetric(cur, key + '_b') || null;
+      const pb = key => sumMetric(cmp, key + '_b') || null;
       const cards = [
-        { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: sumMetric(cur, 'totRev'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRev') : null, budget: b('totRev'), isCurrency: true },
-        { cls: '', label: 'PENDAPATAN TIKETING', curr: sumMetric(cur, 'totRevTiket'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevTiket') : null, budget: b('totRevTiket'), isCurrency: true },
-        { cls: '', label: 'PENDAPATAN INDIVIDU', curr: sumMetric(cur, 'totRevInd'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevInd') : null, budget: b('totRevInd'), isCurrency: true },
-        { cls: 'amber', label: 'PENDAPATAN ROMBONGAN', curr: sumMetric(cur, 'totRevRomb'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevRomb') : null, budget: b('totRevRomb'), isCurrency: true },
-        { cls: 'green', label: 'INPARK REVENUE', curr: sumMetric(cur, 'totRevInpark'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevInpark') : null, budget: b('totRevInpark'), isCurrency: true },
+        { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: sumMetric(cur, 'totRev'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRev') : null, prevBudget: state.cmp.enabled ? pb('totRev') : null, budget: b('totRev'), isCurrency: true },
+        { cls: '', label: 'PENDAPATAN TIKETING', curr: sumMetric(cur, 'totRevTiket'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevTiket') : null, prevBudget: state.cmp.enabled ? pb('totRevTiket') : null, budget: b('totRevTiket'), isCurrency: true },
+        { cls: '', label: 'PENDAPATAN INDIVIDU', curr: sumMetric(cur, 'totRevInd'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevInd') : null, prevBudget: state.cmp.enabled ? pb('totRevInd') : null, budget: b('totRevInd'), isCurrency: true },
+        { cls: 'amber', label: 'PENDAPATAN ROMBONGAN', curr: sumMetric(cur, 'totRevRomb'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevRomb') : null, prevBudget: state.cmp.enabled ? pb('totRevRomb') : null, budget: b('totRevRomb'), isCurrency: true },
+        { cls: 'green', label: 'INPARK REVENUE', curr: sumMetric(cur, 'totRevInpark'), prev: state.cmp.enabled ? sumMetric(cmp, 'totRevInpark') : null, prevBudget: state.cmp.enabled ? pb('totRevInpark') : null, budget: b('totRevInpark'), isCurrency: true },
       ];
       document.getElementById('pendapatanKpi').innerHTML = cards.map(renderKPICard).join('');
     }
@@ -2591,23 +2608,37 @@
       const cur = filterRange(state.cur.start, state.cur.end);
       const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
       const showCmp = state.cmp.enabled && cmp.length > 0;
+      const showBudget = state.display.budget;
       const LABELS = ['Tiketing', 'Inpark Revenue'];
       const COLORS = ['#0064D2', '#F59E0B'];
       const dataCur = [sumMetric(cur, 'totRevTiket'), sumMetric(cur, 'totRevInpark')];
+      const dataCurBdg = showBudget ? [sumMetric(cur, 'totRevTiket_b'), sumMetric(cur, 'totRevInpark_b')] : null;
       const dataCmp = showCmp ? [sumMetric(cmp, 'totRevTiket'), sumMetric(cmp, 'totRevInpark')] : null;
+      const dataCmpBdg = showCmp && showBudget ? [sumMetric(cmp, 'totRevTiket_b'), sumMetric(cmp, 'totRevInpark_b')] : null;
       const totalCur = dataCur.reduce((a, b) => a + b, 0);
       const totalCmp = dataCmp ? dataCmp.reduce((a, b) => a + b, 0) : 0;
 
       const datasets = [];
+      if (showBudget) {
+        datasets.push({
+          label: 'Anggaran Saat Ini', data: dataCurBdg,
+          backgroundColor: COLORS.map(c => c + '88'), borderColor: '#FFFFFF', borderWidth: 3, hoverOffset: 4, weight: 1.2
+        });
+      }
       datasets.push({
-        label: 'Saat ini', data: dataCur,
+        label: 'Realisasi Saat Ini', data: dataCur,
         backgroundColor: COLORS, borderColor: '#FFFFFF', borderWidth: 3, hoverOffset: 8, weight: 1
       });
       if (showCmp) {
+        if (showBudget) {
+          datasets.push({
+            label: 'Anggaran Pembanding', data: dataCmpBdg,
+            backgroundColor: COLORS.map(c => c + '33'), borderColor: '#FFFFFF', borderWidth: 2, hoverOffset: 2, weight: 0.8
+          });
+        }
         datasets.push({
-          label: 'Pembanding', data: dataCmp,
-          backgroundColor: COLORS.map(c => c + '88'),
-          borderColor: '#FFFFFF', borderWidth: 2, weight: 0.55
+          label: showBudget ? 'Realisasi Pembanding' : 'Pembanding', data: dataCmp,
+          backgroundColor: COLORS.map(c => c + '55'), borderColor: '#FFFFFF', borderWidth: 2, hoverOffset: 2, weight: 0.6
         });
       }
 
@@ -2639,13 +2670,13 @@
             ctx.textAlign = 'center';
             if (showCmp) {
               ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
-              ctx.fillText('SAAT INI', width / 2, top + height / 2 - 22);
-              ctx.fillStyle = '#1A1A1A'; ctx.font = '600 12px Nunito';
-              ctx.fillText(FMT_RP(totalCur), width / 2, top + height / 2 - 7);
+              ctx.fillText('SAAT INI', width / 2, top + height / 2 - 26);
+              ctx.fillStyle = '#1A1A1A'; ctx.font = '600 13px Nunito';
+              ctx.fillText(FMT_RP(totalCur), width / 2, top + height / 2 - 10);
               ctx.fillStyle = '#6B6B7B'; ctx.font = '500 9px JetBrains Mono';
-              ctx.fillText('PEMBANDING', width / 2, top + height / 2 + 12);
-              ctx.fillStyle = '#1A1A1A'; ctx.font = '600 12px Nunito';
-              ctx.fillText(FMT_RP(totalCmp), width / 2, top + height / 2 + 27);
+              ctx.fillText('PEMBANDING', width / 2, top + height / 2 + 8);
+              ctx.fillStyle = '#1A1A1A'; ctx.font = '600 13px Nunito';
+              ctx.fillText(FMT_RP(totalCmp), width / 2, top + height / 2 + 24);
             } else {
               ctx.fillStyle = '#6B6B7B'; ctx.font = '500 10px JetBrains Mono';
               ctx.fillText('TOTAL PENDAPATAN', width / 2, top + height / 2 - 10);
@@ -2833,7 +2864,11 @@
       // Build header
       const headerCols = ['<th class="dt-akun-head">Akun</th>', '<th class="dt-label-head">URAIAN</th>', '<th>Realisasi</th>'];
       if (showBudget) { headerCols.push('<th>Anggaran</th>'); headerCols.push('<th>Pencapaian</th>'); }
-      if (showCmp) { headerCols.push('<th>Pembanding</th>'); headerCols.push('<th>Δ %</th>'); }
+      if (showCmp) {
+        headerCols.push('<th>Pembanding Realisasi</th>');
+        if (showBudget) headerCols.push('<th>Pembanding Anggaran</th>');
+        headerCols.push('<th>Δ %</th>');
+      }
       const colspan = headerCols.length;
       const headerRowHTML = `<tr>${headerCols.join('')}</tr>`;
 
@@ -2876,10 +2911,14 @@
         }
         if (showCmp) {
           const pv = sumMetric(cmp, r.key);
+          const pvB = showBudget ? sumMetric(cmp, r.key + '_b') : null;
           const p = pct(cv, pv);
           const pCls = p == null ? '' : (p >= 0 ? 'pct-up' : 'pct-down');
           const pTxt = p == null ? '—' : (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
           cells.push(`<td>${fmt(pv)}</td>`);
+          if (showBudget) {
+            cells.push(`<td>${pvB > 0 ? fmt(pvB) : '—'}</td>`);
+          }
           cells.push(`<td class="${pCls}">${pTxt}</td>`);
         }
         bodyHTML += `<tr class="${trCls}">${cells.join('')}</tr>`;
