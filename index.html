@@ -242,8 +242,10 @@ body {
 .kpi-secondary-label .dot { display: inline-block; width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
 .kpi-secondary-label .dot.anggaran { background: var(--anggaran); }
 .kpi-secondary-label .dot.pembanding { background: transparent; border: 1.5px solid var(--text-dim); }
+.kpi-secondary-label .dot.pembanding-anggaran { background: transparent; border: 1.5px dashed var(--anggaran); }
 .kpi-anggaran-block .kpi-secondary-label { color: var(--anggaran); }
 .kpi-pembanding-block .kpi-secondary-label { color: var(--text-dim); }
+.kpi-pembanding-anggaran-block .kpi-secondary-label { color: #B97500; }
 .kpi-secondary-val { color: var(--text); font-family: 'Nunito', sans-serif; font-weight: 600; font-size: 19px; letter-spacing: -0.3px; line-height: 1.15; word-break: break-word; }
 .kpi-secondary-val .rp-anggaran { color: var(--anggaran); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; margin-right: 3px; }
 .kpi-secondary-val .rp-pembanding { color: var(--text-dim); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; margin-right: 3px; }
@@ -1048,59 +1050,109 @@ function renderKPICard(c) {
   const showReal = state.display.real;
   const showBudget = state.display.budget;
   const hasBudget = c.budget !== undefined && c.budget !== null && c.budget !== 0;
+  const hasPrevBudget = c.prevBudget !== undefined && c.prevBudget !== null && c.prevBudget !== 0;
   const showCompare = state.cmp.enabled && c.prev !== undefined && c.prev !== null;
 
-  // Main value (Realisasi)
-  const mainFmt = c.isCurrency
-    ? `<span class="kpi-currency">Rp</span>${FMT_FULL(c.curr || 0)}`
-    : `${FMT_FULL(c.curr || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+  // 1. If BOTH are shown:
+  if (showReal && showBudget) {
+    const mainFmt = c.isCurrency
+      ? `<span class="kpi-currency">Rp</span>${FMT_FULL(c.curr || 0)}`
+      : `${FMT_FULL(c.curr || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
 
-  // Anggaran block value
-  const budgetFmt = c.isCurrency
-    ? `<span class="rp-anggaran">Rp</span>${FMT_FULL(c.budget || 0)}`
-    : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
-
-  // Pembanding block value
-  const prevFmt = c.isCurrency
-    ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
-    : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
-
-  // Anggaran block (gaya PDA: label + value + pencapaian)
-  const anggaranBlock = (hasBudget && showBudget) ? `
-    <div class="kpi-secondary-block kpi-anggaran-block">
-      <div class="kpi-secondary-label"><span class="dot anggaran"></span>Anggaran</div>
-      <div class="kpi-secondary-val">${budgetFmt}</div>
-      <div class="kpi-mini-compare">${achievementHTML(c.curr, c.budget)}<span class="kpi-vs">pencapaian</span></div>
-    </div>` : '';
-
-  // Pembanding block (gaya PDA: label + value + delta)
-  const pembandingBlock = showCompare ? `
-    <div class="kpi-secondary-block kpi-pembanding-block">
-      <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding</div>
-      <div class="kpi-secondary-val">${prevFmt}</div>
-      <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
-    </div>` : '';
-
-  // Jika user matikan "Realisasi" — swap main value ke Anggaran
-  if (hasBudget && !showReal && showBudget) {
-    const budgetAsMain = c.isCurrency
-      ? `<span class="kpi-currency" style="color:var(--anggaran)">Rp</span>${FMT_FULL(c.budget || 0)}`
+    const budgetFmt = c.isCurrency
+      ? `<span class="rp-anggaran">Rp</span>${FMT_FULL(c.budget || 0)}`
       : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const anggaranBlock = hasBudget ? `
+      <div class="kpi-secondary-block kpi-anggaran-block">
+        <div class="kpi-secondary-label"><span class="dot anggaran"></span>Anggaran</div>
+        <div class="kpi-secondary-val">${budgetFmt}</div>
+        <div class="kpi-mini-compare">${achievementHTML(c.curr, c.budget)}<span class="kpi-vs">pencapaian</span></div>
+      </div>` : '';
+
+    const prevFmt = c.isCurrency
+      ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
+      : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevRealBlock = showCompare ? `
+      <div class="kpi-secondary-block kpi-pembanding-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding Realisasi</div>
+        <div class="kpi-secondary-val">${prevFmt}</div>
+        <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
+      </div>` : '';
+
+    const prevBudgetFmt = c.isCurrency
+      ? `<span class="rp-anggaran" style="color:var(--anggaran); opacity:0.8;">Rp</span>${FMT_FULL(c.prevBudget || 0)}`
+      : `${FMT_FULL(c.prevBudget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevBudgetBlock = (showCompare && hasPrevBudget) ? `
+      <div class="kpi-secondary-block kpi-pembanding-anggaran-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding-anggaran"></span>Pembanding Anggaran</div>
+        <div class="kpi-secondary-val">${prevBudgetFmt}</div>
+        <div class="kpi-mini-compare">${achievementHTML(c.prev, c.prevBudget)}<span class="kpi-vs">pencapaian</span></div>
+      </div>` : '';
+
     return `
       <div class="kpi-card ${c.cls || ''}">
-        <div class="kpi-label">${c.label} <span style="color:var(--anggaran);font-weight:700;">· ANGGARAN</span></div>
-        <div class="kpi-value">${budgetAsMain}</div>
-        ${pembandingBlock}
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value">${mainFmt}</div>
+        ${anggaranBlock}
+        ${prevRealBlock}
+        ${prevBudgetBlock}
       </div>`;
   }
 
-  return `
-    <div class="kpi-card ${c.cls || ''}">
-      <div class="kpi-label">${c.label}</div>
-      <div class="kpi-value">${mainFmt}</div>
-      ${anggaranBlock}
-      ${pembandingBlock}
-    </div>`;
+  // 2. If ONLY Realisasi is shown:
+  if (showReal && !showBudget) {
+    const mainFmt = c.isCurrency
+      ? `<span class="kpi-currency">Rp</span>${FMT_FULL(c.curr || 0)}`
+      : `${FMT_FULL(c.curr || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevFmt = c.isCurrency
+      ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
+      : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevRealBlock = showCompare ? `
+      <div class="kpi-secondary-block kpi-pembanding-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding Realisasi</div>
+        <div class="kpi-secondary-val">${prevFmt}</div>
+        <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
+      </div>` : '';
+
+    return `
+      <div class="kpi-card ${c.cls || ''}">
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value">${mainFmt}</div>
+        ${prevRealBlock}
+      </div>`;
+  }
+
+  // 3. If ONLY Anggaran is shown (swap main to budget):
+  if (!showReal && showBudget) {
+    const mainFmt = c.isCurrency
+      ? `<span class="kpi-currency" style="color:var(--anggaran)">Rp</span>${FMT_FULL(c.budget || 0)}`
+      : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevBudgetFmt = c.isCurrency
+      ? `<span class="rp-anggaran" style="color:var(--anggaran); opacity:0.8;">Rp</span>${FMT_FULL(c.prevBudget || 0)}`
+      : `${FMT_FULL(c.prevBudget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
+
+    const prevBudgetBlock = (showCompare && hasPrevBudget) ? `
+      <div class="kpi-secondary-block kpi-pembanding-anggaran-block">
+        <div class="kpi-secondary-label"><span class="dot pembanding-anggaran"></span>Pembanding Anggaran</div>
+        <div class="kpi-secondary-val">${prevBudgetFmt}</div>
+        <div class="kpi-mini-compare">${deltaHTML(pct(c.budget, c.prevBudget))}<span class="kpi-vs">vs pembanding</span></div>
+      </div>` : '';
+
+    return `
+      <div class="kpi-card ${c.cls || ''}">
+        <div class="kpi-label">${c.label} <span style="color:var(--anggaran);font-weight:700;">· ANGGARAN</span></div>
+        <div class="kpi-value">${mainFmt}</div>
+        ${prevBudgetBlock}
+      </div>`;
+  }
+
+  return `<div class="kpi-card">No Selection</div>`;
 }
 
 // ============ CHART HELPER ============
