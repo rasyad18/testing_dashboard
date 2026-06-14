@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jakarta Bird Land (JBL) — Performance Dashboard</title>
+<title>Samudra — Performance Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -390,7 +390,7 @@ body {
 
 <div class="header">
   <div class="brand">
-    <div class="brand-tag">— Jakarta Bird Land</div>
+    <div class="brand-tag">— Samudra</div>
     <h1 class="brand-title">Performance <em>Dashboard</em></h1>
     <div class="brand-subtitle">Laporan Harian Pengunjung & Pendapatan — Synced from Google Sheets</div>
   </div>
@@ -466,10 +466,10 @@ body {
 <div class="section-header">
   <span class="section-num">SECTION 1</span>
   <h2 class="section-title">Ringkasan <em>· Overview</em></h2>
-  <div class="section-subtitle">Jakarta Bird Land (JBL)</div>
+  <div class="section-subtitle">Samudra</div>
 </div>
 <div class="kpi-grid cols-4" id="overviewKpi"></div>
-<div class="insights"><div class="insights-title">◆ JBL Insights</div><div class="insights-list" id="overviewInsights"></div></div>
+<div class="insights"><div class="insights-title">◆ Samudra Insights</div><div class="insights-list" id="overviewInsights"></div></div>
 
 <!-- ========== SECTION 2: PENGUNJUNG ========== -->
 <div class="section-header pengunjung">
@@ -534,7 +534,7 @@ body {
 </div>
 <div class="row row-2-eq">
   <div class="panel">
-    <div class="panel-header"><div><div class="panel-title">Inpark Revenue Breakdown</div><div class="panel-subtitle">Feeding Bird · Interactive · In House Program · Service Charge · Acara · Sewa · Rupa-Rupa</div></div></div>
+    <div class="panel-header"><div><div class="panel-title">Inpark Revenue Breakdown</div><div class="panel-subtitle">Sewa Lahan · Air Laut · Kiddy Fun · Perfect Relax · Scooter · Face Painting · Play Land · Rainforest · VR · Acara · Service Charge · Rupa-Rupa</div></div></div>
     <div class="chart-wrap"><canvas id="penyewaanBar"></canvas></div>
   </div>
   <div class="panel">
@@ -547,7 +547,7 @@ body {
 <div class="section-header">
   <span class="section-num">SECTION 4</span>
   <h2 class="section-title">Tabel Data <em>· Ringkasan Numerik</em></h2>
-  <div class="section-subtitle">JBL breakdown</div>
+  <div class="section-subtitle">Samudra breakdown</div>
 </div>
 <div id="dataTablesContainer"></div>
 
@@ -560,144 +560,143 @@ body {
 
 <script>
 // ============ CONFIG ============
-const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOnLYAwTfbaTPsvv1lFHjSfhM7dHGketxQWCc6JFWlfuw0St99ZduOlOhvjuWBOUPaw3sYzuNgPHc6/pub?gid=1194311710&single=true&output=csv";
+const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT0_rPi648qP0CFzSCvBaL53uVZreC_TL0-bK0JQjCjtbCtYp7WzSS22aYIVr7lbswUTox0OqAuTKlm/pub?gid=1026027744&single=true&output=csv";
 
-// Struktur JBL: 232 kolom
-//   Col A  (idx 0)        : Tanggal
-//   Col B  (idx 1)        : "Anggaran Pengunjung" header
-//   Col C–BD (idx 2–55)   : ANGGARAN PENGUNJUNG items
-//   Col BE (idx 56)       : "TOTAL PENGUNJUNG (A+B+C+D)"
-//   Col BF (idx 57)       : "Anggaran REVENUE" header
-//   Col BG–DL (idx 58–115): ANGGARAN REVENUE items
-//   Col DM (idx 116)      : Separator kosong
-//   Col DN (idx 117)      : "Realisasi Pengunjung" header
-//   Col DO–FQ (idx 118–172): REALISASI PENGUNJUNG (mirror)
-//   Col FR (idx 173)      : "Realisasi REVENUE" header
-//   Col FS–HX (idx 174–231): REALISASI REVENUE (mirror)
-const OFFSET = 116;
+// Struktur Samudra: 248 kolom
+//   Col A   (idx 0)         : Tanggal
+//   Col B-DT (idx 1-123)    : ANGGARAN (Pengunjung 4-54, Revenue 57-123)
+//   Col DU  (idx 124)       : Separator kosong
+//   Col DV-IN (idx 125-247) : REALISASI (mirror, offset = +124)
+const OFFSET = 124;
 
 // ============ METRIC REGISTRY ============
 const METRICS = [
   // ====== I. PENGUNJUNG ======
-  // I.A — Individu (Reguler, Bundling, Foreigner, Promo)
-  { key: 'pengReg',                anggIdx: 3,  label: 'Reguler tanpa Ancol' },
-  { key: 'pengBonusSwaOds',        anggIdx: 4,  label: 'Bonus Tiket Reguler dari SWA & ODS' },
-  { key: 'pengBundJblOds',         anggIdx: 5,  label: 'Bundling JBL-ODS' },
-  { key: 'pengBundOdsJbl',         anggIdx: 6,  label: 'Bundling ODS-JBL' },
-  { key: 'pengBundOdsSwaJbl',      anggIdx: 7,  label: 'Tiket Bundling dr ODS-SWA-JBL' },
-  { key: 'pengBundJblSwa',         anggIdx: 8,  label: 'Tiket Bundling dr JBL-SWA' },
-  { key: 'pengBundSwaOdsJbl',      anggIdx: 9,  label: 'Tiket Bundling dr SWA-ODS-JBL' },
-  { key: 'pengBundJblSwaOds',      anggIdx: 10, label: 'Tiket Bundling JBL-SWA-ODS' },
-  { key: 'pengBundAwaJbl',         anggIdx: 11, label: 'Tiket Bundling AWA - JBL' },
-  { key: 'pengBonusDufanJbl',      anggIdx: 12, label: 'Bonus Tiket dari Dufan 0 JBL' },
-  { key: 'pengBundPda',            anggIdx: 13, label: 'Tiket Bundling dr PDA' },
-  { key: 'pengFrReg',              anggIdx: 14, label: '(Foreigner) Reguler' },
-  { key: 'pengFrJblOds',           anggIdx: 15, label: '(Foreigner) JBL-ODS' },
-  { key: 'pengFrJblSwa',           anggIdx: 16, label: '(Foreigner) JBL-SWA' },
-  { key: 'pengFrOdsJbl',           anggIdx: 17, label: '(Foreigner) ODS-JBL' },
-  { key: 'pengFrSwaJbl',           anggIdx: 18, label: '(Foreigner) SWA-JBL' },
-  { key: 'pengFrJblSwaOds',        anggIdx: 19, label: '(Foreigner) JBL-SWA-ODS' },
-  { key: 'pengFrOdsSwaJbl',        anggIdx: 20, label: '(Foreigner) ODS-SWA-JBL' },
-  { key: 'pengFrSwaOdsJbl',        anggIdx: 21, label: '(Foreigner) SWA-ODS-JBL' },
-  { key: 'pengFrAwaJbl',           anggIdx: 22, label: '(Foreigner) AWA - JBL' },
-  { key: 'pengPda',                anggIdx: 23, label: 'Tiket PDA' },
-  { key: 'pengRegPromo',           anggIdx: 24, label: 'Reguler Promo' },
-  { key: 'pengAnnualPassOds',      anggIdx: 25, label: 'Annuall Pass ODS 0 JBL' },
-  { key: 'pengPromoSosmed',        anggIdx: 26, label: 'Promo Sosmed / Ecomerce' },
-  { key: 'pengPaketFamily',        anggIdx: 27, label: 'Paket Family' },
-  { key: 'pengTiketOnline',        anggIdx: 28, label: 'Tiket Online/Promo' },
-  { key: 'pengIndividu',           anggIdx: 29, label: 'Total Individu' },
-  // I.B — Rombongan Jabodetabek
-  { key: 'pengJabRegUmum',         anggIdx: 31, label: 'Reguler Umum Jabodetabek' },
-  { key: 'pengJabRegPelajar',      anggIdx: 32, label: 'Reguler Pelajar Jabodetabek' },
-  { key: 'pengJabRegUmumBund',     anggIdx: 33, label: 'Reguler Umum Jabodetabek (Bundling ODS)' },
-  { key: 'pengJabRegPelajarBund',  anggIdx: 34, label: 'Reguler Pelajar Jabodetabek (Bundling ODS)' },
-  { key: 'pengJabodetabek',        anggIdx: 35, label: 'Total Romb Jabodetabek' },
-  // I.C — Rombongan Agen Daerah
-  { key: 'pengAgUmum',             anggIdx: 37, label: 'Umum Agen Daerah (BirdLand + Ancol)' },
-  { key: 'pengAgPelajar',          anggIdx: 38, label: 'Pelajar Agen Daerah (BirdLand + Ancol)' },
-  { key: 'pengAgUmumBund',         anggIdx: 39, label: 'Umum Agen Daerah (ODS bundling BirdLand)' },
-  { key: 'pengAgPelajarBund',      anggIdx: 40, label: 'Pelajar Agen Daerah (ODS bundling BirdLand)' },
-  { key: 'pengAgenDaerah',         anggIdx: 41, label: 'Total Romb Agen Daerah' },
-  // I.D — Rombongan Direct Luar Jabodetabek
-  { key: 'pengDrUmum',             anggIdx: 43, label: 'Umum Direct Luar Jabodetabek (BirdLand + Ancol)' },
-  { key: 'pengDrPelajar',          anggIdx: 44, label: 'Pelajar Direct Luar Jabodetabek (BirdLand + Ancol)' },
-  { key: 'pengDrUmumBund',         anggIdx: 45, label: 'Umum Direct Luar Jabodetabek (Bundling ODS)' },
-  { key: 'pengDrPelajarBund',      anggIdx: 46, label: 'Pelajar Direct Luar Jabodetabek (Bundling ODS)' },
-  { key: 'pengAgenLuarSubtotal',   anggIdx: 47, label: 'Total Romb Agen Daerah + Luar Jabodetabek' },
-  { key: 'pengRombongan',          anggIdx: 48, label: 'Total Rombongan' },
-  { key: 'pengBayar',              anggIdx: 49, label: 'Total Individu + Rombongan' },
-  // I.E — Pengunjung Tidak Bayar
-  { key: 'tbRepeaterJbl',          anggIdx: 51, label: 'Repeater Member JBL' },
-  { key: 'tbRepeaterJblOds',       anggIdx: 52, label: 'Repeater Member JBL - ODS' },
-  { key: 'tbRepeaterJblSwa',       anggIdx: 53, label: 'Repeater Member JBL - SWA' },
-  { key: 'tbRk',                   anggIdx: 54, label: 'RK, COMP, VIP, DLL' },
-  { key: 'pengTidakBayar',         anggIdx: 55, label: 'JUMLAH PENGUNJUNG TIDAK BAYAR' },
-  { key: 'pengTotalBayar',         anggIdx: 56, label: 'TOTAL PENGUNJUNG (A+B+C+D)' },
+  // I.A — Individu (Tiket reguler + Bundling + Foreigner + E-Commerce)
+  { key: 'pengTiketIndividu',           anggIdx: 4,  label: 'Tiket Individu' },
+  { key: 'pengTiketHargaKhusus',        anggIdx: 5,  label: 'Tiket Harga Khusus' },
+  { key: 'pengTiketOdsBonusJbl',        anggIdx: 6,  label: 'Tiket ODS Bonus JBL' },
+  { key: 'pengBundOdsSwa',              anggIdx: 7,  label: 'Tiket Bundling dr ODS – SWA' },
+  { key: 'pengBundSwaOds',              anggIdx: 8,  label: 'Tiket Bundling dr SWA – ODS' },
+  { key: 'pengBundJblOds',              anggIdx: 9,  label: 'Tiket Bundling dr JBL – ODS' },
+  { key: 'pengBundSwaJblOds',           anggIdx: 10, label: 'Tiket Bundling dr SWA - JBL - ODS' },
+  { key: 'pengBundJblSwaOds',           anggIdx: 11, label: 'Tiket Bundling dr JBL - SWA - ODS' },
+  { key: 'pengBundOdsSwaJbl',           anggIdx: 12, label: 'Tiket Bundling dr ODS-SWA-JBL' },
+  { key: 'pengBundJblOdsSwaDufan',      anggIdx: 13, label: 'Tiket Bundling JBL – ODS - SWA-DUFAN' },
+  { key: 'pengBundOdsAwa',              anggIdx: 14, label: 'Tiket Bundling dr ODS – AWA' },
+  { key: 'pengBundOdsDufan',            anggIdx: 15, label: 'Tiket Bundling dr ODS - DUFAN' },
+  { key: 'pengBundDufanOds',            anggIdx: 16, label: 'Tiket Bundling dr DUFAN -ODS' },
+  { key: 'pengFunPass',                 anggIdx: 17, label: 'Tiket FUN PASS (DUFAN,AWA,SWA,ODS)' },
+  { key: 'pengBundPda',                 anggIdx: 18, label: 'Tiket Bundling dr PDA' },
+  { key: 'pengPda',                     anggIdx: 19, label: 'Tiket PDA' },
+  { key: 'pengMemberDolphi',            anggIdx: 20, label: 'Member Dolphi' },
+  { key: 'pengAnnualPass',              anggIdx: 21, label: 'Annuall Pass Sea World Ancol - ODS' },
+  { key: 'pengFrTiket',                 anggIdx: 22, label: 'Foreigner Tiket Reguler' },
+  { key: 'pengFrOdsBonusJbl',           anggIdx: 23, label: 'Foreigner ODS Bonus JBL' },
+  { key: 'pengFrJblBonusOds',           anggIdx: 24, label: 'Foreigner JBL Bonus ODS' },
+  { key: 'pengFrBundOdsSwa',            anggIdx: 25, label: 'Foreigner Bundling ODS-SWA' },
+  { key: 'pengFrBundSwaOds',            anggIdx: 26, label: 'Foreigner Bundling SWA-ODS' },
+  { key: 'pengFrBundOdsJblSwa',         anggIdx: 27, label: 'Foreigner Bundling ODS-JBL-SWA' },
+  { key: 'pengFrBundSwaOdsJbl',         anggIdx: 28, label: 'Foreigner Bundling SWA-ODS-JBL' },
+  { key: 'pengFrBundJblOdsSwa',         anggIdx: 29, label: 'Foreigner Bundling JBL-ODS-SWA' },
+  { key: 'pengFrBundDufanOds',          anggIdx: 30, label: 'Foreigner Bundling Dufan-ODS' },
+  { key: 'pengFrAnnualSamudra',         anggIdx: 31, label: 'Foreigner Loket OTS Annual Pass Samudra (E-Card)' },
+  { key: 'pengFrAnnualSWSamudra',       anggIdx: 32, label: 'Foreigner Loket OTS Annual Pass Sea World - Samudra (E-Card)' },
+  { key: 'pengEcommerce',               anggIdx: 33, label: 'E-Commerce' },
+  { key: 'pengPromoFamily',             anggIdx: 34, label: 'Promo Family' },
+  { key: 'pengAncolCom',                anggIdx: 35, label: 'Ancol.Com' },
+  { key: 'pengIndividu',                anggIdx: 36, label: 'JUMLAH PENGUNJUNG INDIVIDU' },
+  // I.B — Rombongan Langsung
+  { key: 'pengRlPelajar',               anggIdx: 38, label: 'Pelajar/Sekolah' },
+  { key: 'pengRlUmum',                  anggIdx: 39, label: 'Umum/Perusahaan' },
+  { key: 'pengRlOnline',                anggIdx: 40, label: 'Online' },
+  { key: 'pengRombLangsung',            anggIdx: 41, label: 'Jumlah Pengunjung Romb. Langsung' },
+  // I.C — Rombongan Agen
+  { key: 'pengRaPelajar',               anggIdx: 43, label: 'Pelajar/Sekolah' },
+  { key: 'pengRaUmum',                  anggIdx: 44, label: 'Umum/Perusahaan' },
+  { key: 'pengAgenDaerah',              anggIdx: 45, label: 'Jumlah Pengunjung Romb. Agen' },
+  { key: 'pengRombongan',               anggIdx: 46, label: 'JUMLAH PENGUNJUNG ROMBONGAN' },
+  { key: 'pengBayar',                   anggIdx: 47, label: 'JUMLAH PENGUNJUNG BAYAR' },
+  // I.D — Pengunjung Tidak Bayar
+  { key: 'tbRepDolphi',                 anggIdx: 49, label: 'Repeater Member Dolphi' },
+  { key: 'tbRepSwaOds',                 anggIdx: 50, label: 'Repeater Member SWA-ODS' },
+  { key: 'tbRepFunPass',                anggIdx: 51, label: 'Repeater FUN PASS' },
+  { key: 'tbRk',                        anggIdx: 52, label: 'RK, COMP, VIP, DLL' },
+  { key: 'pengTidakBayar',              anggIdx: 53, label: 'JUMLAH PENGUNJUNG TIDAK BAYAR' },
+  { key: 'pengTotal',                   anggIdx: 54, label: 'TOTAL PENGUNJUNG (A+B+C+D)' },
 
   // ====== II. REVENUE ======
-  // II.A — Individu Revenue
-  { key: 'revReg',                anggIdx: 59, label: 'Reguler tanpa Ancol' },
-  { key: 'revBonusSwaOds',        anggIdx: 60, label: 'Bonus Tiket Reguler dari SWA & ODS' },
-  { key: 'revBundJblOds',         anggIdx: 61, label: 'Bundling JBL-ODS' },
-  { key: 'revBundOdsJbl',         anggIdx: 62, label: 'Bundling ODS-JBL' },
-  { key: 'revBundOdsSwaJbl',      anggIdx: 63, label: 'Tiket Bundling dr ODS-SWA-JBL' },
-  { key: 'revBundJblSwa',         anggIdx: 64, label: 'Tiket Bundling dr JBL-SWA' },
-  { key: 'revBundSwaOdsJbl',      anggIdx: 65, label: 'Tiket Bundling dr SWA-ODS-JBL' },
-  { key: 'revBundJblSwaOds',      anggIdx: 66, label: 'Tiket Bundling JBL-SWA-ODS' },
-  { key: 'revBundAwaJbl',         anggIdx: 67, label: 'Tiket Bundling AWA - JBL' },
-  { key: 'revBonusDufanJbl',      anggIdx: 68, label: 'Bonus Tiket JBL dari Dufan 0 JBL' },
-  { key: 'revBundPda',            anggIdx: 69, label: 'Tiket Bundling dr PDA' },
-  { key: 'revFrReg',              anggIdx: 70, label: '(Foreigner) Reguler' },
-  { key: 'revFrJblOds',           anggIdx: 71, label: '(Foreigner) JBL-ODS' },
-  { key: 'revFrJblSwa',           anggIdx: 72, label: '(Foreigner) JBL-SWA' },
-  { key: 'revFrOdsJbl',           anggIdx: 73, label: '(Foreigner) ODS-JBL' },
-  { key: 'revFrSwaJbl',           anggIdx: 74, label: '(Foreigner) SWA-JBL' },
-  { key: 'revFrJblSwaOds',        anggIdx: 75, label: '(Foreigner) JBL-SWA-ODS' },
-  { key: 'revFrOdsSwaJbl',        anggIdx: 76, label: '(Foreigner) ODS-SWA-JBL' },
-  { key: 'revFrSwaOdsJbl',        anggIdx: 77, label: '(Foreigner) SWA-ODS-JBL' },
-  { key: 'revFrAwaJbl',           anggIdx: 78, label: '(Foreigner) AWA - JBL' },
-  { key: 'revPda',                anggIdx: 79, label: 'Tiket PDA' },
-  { key: 'revPermainan',          anggIdx: 80, label: 'Tiket Permainan' },
-  { key: 'revRegPromo',           anggIdx: 81, label: 'Reguler Promo' },
-  { key: 'revPromoSosmed',        anggIdx: 82, label: 'Promo Sosmed / Ecomerce' },
-  { key: 'revPaketFamily',        anggIdx: 83, label: 'Paket Family' },
-  { key: 'revTiketOnline',        anggIdx: 84, label: 'Tiket Online/Promo' },
-  { key: 'revIndividu',           anggIdx: 85, label: 'Total Individu' },
-  // II.B — Rombongan Jabodetabek Rev
-  { key: 'revJabRegUmum',         anggIdx: 87, label: 'Reguler Umum Jabodetabek' },
-  { key: 'revJabRegPelajar',      anggIdx: 88, label: 'Reguler Pelajar Jabodetabek' },
-  { key: 'revJabRegUmumBund',     anggIdx: 89, label: 'Reguler Umum Jabodetabek (Bundling ODS)' },
-  { key: 'revJabRegPelajarBund',  anggIdx: 90, label: 'Reguler Pelajar Jabodetabek (Bundling ODS)' },
-  { key: 'revJabodetabek',        anggIdx: 91, label: 'Total Romb Jabodetabek' },
-  // II.C — Rombongan Agen Daerah Rev
-  { key: 'revAgUmum',             anggIdx: 93, label: 'Umum Agen Daerah (BirdLand + Ancol)' },
-  { key: 'revAgPelajar',          anggIdx: 94, label: 'Pelajar Agen Daerah (BirdLand + Ancol)' },
-  { key: 'revAgUmumBund',         anggIdx: 95, label: 'Umum Agen Daerah (ODS bundling BirdLand)' },
-  { key: 'revAgPelajarBund',      anggIdx: 96, label: 'Pelajar Agen Daerah (ODS bundling BirdLand)' },
-  { key: 'revAgenDaerah',         anggIdx: 97, label: 'Total Romb Agen Daerah' },
-  // II.D — Rombongan Direct Luar Jabodetabek Rev
-  { key: 'revDrUmum',             anggIdx: 99, label: 'Umum Direct Luar Jabodetabek (BirdLand + Ancol)' },
-  { key: 'revDrPelajar',          anggIdx: 100,label: 'Pelajar Direct Luar Jabodetabek (BirdLand + Ancol)' },
-  { key: 'revDrUmumBund',         anggIdx: 101,label: 'Umum Direct Luar Jabodetabek (Bundling ODS)' },
-  { key: 'revDrPelajarBund',      anggIdx: 102,label: 'Pelajar Direct Luar Jabodetabek (Bundling ODS)' },
-  { key: 'revAgenLuarSubtotal',   anggIdx: 103,label: 'Total Romb Agen Daerah + Luar Jabodetabek' },
-  { key: 'revRombongan',          anggIdx: 104,label: 'Total Rombongan' },
-  { key: 'revTiket',              anggIdx: 105,label: 'Total Individu + Rombongan' },
-  // II.E — Inpark Revenue
-  { key: 'inpFeeding',            anggIdx: 107, label: 'Feeding Bird' },
-  { key: 'inpInteractive',        anggIdx: 108, label: 'Interactive With Birds' },
-  { key: 'inpInHouse',            anggIdx: 109, label: 'In House Program' },
-  { key: 'inpService',            anggIdx: 110, label: 'Service Charge' },
-  { key: 'inpAcara',              anggIdx: 111, label: 'Pendapatan Acara' },
-  { key: 'inpSewa',               anggIdx: 112, label: 'Sewa Lahan' },
-  { key: 'inpRupa',               anggIdx: 113, label: 'Rupa-Rupa' },
-  { key: 'revInpark',             anggIdx: 114, label: 'TOTAL INPARK REVENUE' },
-  { key: 'rev',                   anggIdx: 115, label: 'TOTAL REVENUE JBL (A+B+C+D+E)' },
+  // II.A — Individu (Tiket Reguler + Bundling + Foreigner + Ecommerce)
+  { key: 'revTiketIndividu',            anggIdx: 57, label: 'Tiket Individu' },
+  { key: 'revTiketHargaKhusus',         anggIdx: 58, label: 'Tiket Harga Khusus' },
+  { key: 'revTiketOdsBonusJbl',         anggIdx: 59, label: 'Tiket ODS Bonus JBL' },
+  { key: 'revBundOdsSwa',               anggIdx: 60, label: 'Tiket Bundling dr ODS – SWA' },
+  { key: 'revBundSwaOds',               anggIdx: 61, label: 'Tiket Bundling dr SWA – ODS' },
+  { key: 'revBundJblOds',               anggIdx: 62, label: 'Tiket Bundling dr JBL – ODS' },
+  { key: 'revBundSwaJblOds',            anggIdx: 63, label: 'Tiket Bundling dr SWA - JBL - ODS' },
+  { key: 'revBundJblOdsSwaDufan',       anggIdx: 64, label: 'Tiket Bundling dr JBL - ODS-SWA-DUFAN' },
+  { key: 'revBundOdsSwaJbl',            anggIdx: 65, label: 'Tiket Bundling dr ODS-SWA-JBL' },
+  { key: 'revBundJblSwaOds',            anggIdx: 66, label: 'Tiket Bundling dr JBL - SWA - ODS' },
+  { key: 'revBundOdsAwa',               anggIdx: 67, label: 'Tiket Bundling dr ODS – AWA' },
+  { key: 'revBundOdsDufan',             anggIdx: 68, label: 'Tiket Bundling dr ODS - DUFAN' },
+  { key: 'revBundDufanOds',             anggIdx: 69, label: 'Tiket Bundling dr DUFAN -ODS' },
+  { key: 'revFunPass',                  anggIdx: 70, label: 'Tiket FUN PASS (DUFAN,AWA,SWA,ODS)' },
+  { key: 'revBundPda',                  anggIdx: 71, label: 'Tiket Bundling dr PDA' },
+  { key: 'revPda',                      anggIdx: 72, label: 'Tiket PDA' },
+  { key: 'revMemberDolphi',             anggIdx: 73, label: 'Member Dolphi' },
+  { key: 'revAnnualPass',               anggIdx: 74, label: 'Annuall Pass Sea World Ancol - ODS' },
+  { key: 'revFrTiket',                  anggIdx: 75, label: 'Foreigner Tiket Reguler' },
+  { key: 'revFrOdsBonusJbl',            anggIdx: 76, label: 'Foreigner ODS Bonus JBL' },
+  { key: 'revFrJblBonusOds',            anggIdx: 77, label: 'Foreigner JBL Bonus ODS' },
+  { key: 'revFrBundOdsSwa',             anggIdx: 78, label: 'Foreigner Bundling ODS-SWA' },
+  { key: 'revFrBundSwaOds',             anggIdx: 79, label: 'Foreigner Bundling SWA-ODS' },
+  { key: 'revFrBundOdsJblSwa',          anggIdx: 80, label: 'Foreigner Bundling ODS-JBL-SWA' },
+  { key: 'revFrBundSwaOdsJbl',          anggIdx: 81, label: 'Foreigner Bundling SWA-ODS-JBL' },
+  { key: 'revFrBundJblOdsSwa',          anggIdx: 82, label: 'Foreigner Bundling JBL-ODS-SWA' },
+  { key: 'revFrBundDufanOds',           anggIdx: 83, label: 'Foreigner Bundling Dufan-ODS' },
+  { key: 'revFrAnnualSamudra',          anggIdx: 84, label: 'Foreigner Loket OTS Annual Pass Samudra (E-Card)' },
+  { key: 'revFrAnnualSWSamudra',        anggIdx: 85, label: 'Foreigner Loket OTS Annual Pass Sea World - Samudra (E-Card)' },
+  { key: 'revEcommerce',                anggIdx: 86, label: 'E-Commerce' },
+  { key: 'revPromoFamily',              anggIdx: 87, label: 'Promo Family' },
+  { key: 'revAncolCom',                 anggIdx: 88, label: 'Ancol.Com' },
+  // Sub-group: Tiket Penyewaan (animal feeding/interaction experiences)
+  { key: 'revPenyInteract',             anggIdx: 90, label: 'Interactive With Dolphin (Swimming & Therapy)' },
+  { key: 'revPenyFeedingDolphin',       anggIdx: 91, label: 'Feeding Dolphin & Penguin' },
+  { key: 'revPenyFeedingAlpaca',        anggIdx: 92, label: 'Feeding Alpaca' },
+  { key: 'revPenyFeedingBurung',        anggIdx: 93, label: 'Feeding Burung Unta' },
+  { key: 'revPenyFeedingRusa',          anggIdx: 94, label: 'Feeding Rusa' },
+  { key: 'revPenyPaket',                anggIdx: 95, label: 'Paket Feeding Samudra' },
+  { key: 'revIndividu',                 anggIdx: 96, label: 'JUMLAH PENDAPATAN INDIVIDU' },
+  // II.B — Pendapatan Rombongan Langsung
+  { key: 'revRlPelajar',                anggIdx: 98, label: 'Pelajar/Sekolah' },
+  { key: 'revRlUmum',                   anggIdx: 99, label: 'Umum/Perusahaan' },
+  { key: 'revRlOnline',                 anggIdx: 100,label: 'Online' },
+  { key: 'revRombLangsung',             anggIdx: 101,label: 'Jumlah Rombongan Langsung' },
+  // II.C — Pendapatan Rombongan Agen
+  { key: 'revRaPelajar',                anggIdx: 103,label: 'Pelajar/Sekolah' },
+  { key: 'revRaUmum',                   anggIdx: 104,label: 'Umum/Perusahaan' },
+  { key: 'revAgenDaerah',               anggIdx: 105,label: 'Jumlah Rombongan Agen' },
+  { key: 'revRombongan',                anggIdx: 106,label: 'JUMLAH PENDAPATAN ROMBONGAN' },
+  { key: 'revTiket',                    anggIdx: 107,label: 'JUMLAH PENDAPATAN TIKET' },
+  // II.D — Inpark Revenue (12 items)
+  { key: 'inpSewaLahan',                anggIdx: 109, label: 'Sewa Lahan' },
+  { key: 'inpAirLaut',                  anggIdx: 110, label: 'Air Laut' },
+  { key: 'inpKiddyFun',                 anggIdx: 111, label: 'Kiddy Fun' },
+  { key: 'inpPerfectRelax',             anggIdx: 112, label: 'Perfect Relax' },
+  { key: 'inpScooter',                  anggIdx: 113, label: 'Scooter' },
+  { key: 'inpFacePaint',                anggIdx: 114, label: 'Face Painting & Tattoo' },
+  { key: 'inpPlayLand',                 anggIdx: 115, label: 'Play Land' },
+  { key: 'inpRainforest',               anggIdx: 116, label: 'Rainforest' },
+  { key: 'inpPlayOnVR',                 anggIdx: 117, label: 'Play On VR' },
+  { key: 'inpAcara',                    anggIdx: 118, label: 'Pendapatan Acara' },
+  { key: 'inpService',                  anggIdx: 119, label: 'Service Charge Tenant' },
+  { key: 'inpRupa',                     anggIdx: 120, label: 'Rupa-Rupa' },
+  { key: 'revInpark',                   anggIdx: 121, label: 'TOTAL INPARK REVENUE' },
+  { key: 'rev',                         anggIdx: 123, label: 'TOTAL REVENUE' },
 ];
 
-// Currency keys: semua revenue (anggIdx >= 58)
-const CURRENCY_KEYS = new Set(METRICS.filter(m => m.anggIdx >= 58).map(m => m.key));
+// Currency keys: semua revenue (anggIdx >= 56)
+const CURRENCY_KEYS = new Set(METRICS.filter(m => m.anggIdx >= 56).map(m => m.key));
 
 // ============ FORMATTERS ============
 const FMT_FULL = n => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Math.round(n || 0));
@@ -862,7 +861,7 @@ function parseDateAny(v) {
   return null;
 }
 
-// ============ CSV PARSING — JBL position-based ============
+// ============ CSV PARSING — Samudra position-based ============
 function parseCSV(csvText) {
   const parsed = Papa.parse(csvText, { skipEmptyLines: true });
   if (!parsed.data || parsed.data.length < 2) throw new Error('CSV kosong/invalid');
@@ -880,15 +879,6 @@ function parseCSV(csvText) {
       rec.metrics[m.key + '_b'] = parseNum(row[m.anggIdx]);
       rec.metrics[m.key]        = parseNum(row[m.anggIdx + OFFSET]);
     }
-    // Derived: pengDirect = (Total Romb Agen Daerah + Luar Jabodetabek) - (Total Romb Agen Daerah)
-    // Karena subtotal di kolom 47 merepresentasi C+D, jadi D-only = subtotal - C.
-    rec.metrics['pengDirect']   = (rec.metrics['pengAgenLuarSubtotal']   || 0) - (rec.metrics['pengAgenDaerah']   || 0);
-    rec.metrics['pengDirect_b'] = (rec.metrics['pengAgenLuarSubtotal_b'] || 0) - (rec.metrics['pengAgenDaerah_b'] || 0);
-    rec.metrics['revDirect']    = (rec.metrics['revAgenLuarSubtotal']    || 0) - (rec.metrics['revAgenDaerah']    || 0);
-    rec.metrics['revDirect_b']  = (rec.metrics['revAgenLuarSubtotal_b']  || 0) - (rec.metrics['revAgenDaerah_b']  || 0);
-    // Derived: pengTotal grand total (bayar + tidak bayar) — untuk konsistensi dgn dashboard lain
-    rec.metrics['pengTotal']    = (rec.metrics['pengBayar']    || 0) + (rec.metrics['pengTidakBayar']    || 0);
-    rec.metrics['pengTotal_b']  = (rec.metrics['pengBayar_b']  || 0) + (rec.metrics['pengTidakBayar_b']  || 0);
     records.push(rec);
   }
   records.sort((a, b) => a.date.localeCompare(b.date));
@@ -1075,7 +1065,6 @@ function renderKPICard(c) {
   const showReal = state.display.real;
   const showBudget = state.display.budget;
   const hasBudget = c.budget !== undefined && c.budget !== null && c.budget !== 0;
-  const hasPrevBudget = c.prevBudget !== undefined && c.prevBudget !== null && c.prevBudget !== 0;
   const showCompare = state.cmp.enabled && c.prev !== undefined && c.prev !== null;
 
   // Main value (Realisasi)
@@ -1088,15 +1077,10 @@ function renderKPICard(c) {
     ? `<span class="rp-anggaran">Rp</span>${FMT_FULL(c.budget || 0)}`
     : `${FMT_FULL(c.budget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
 
-  // Pembanding realisasi value
+  // Pembanding block value
   const prevFmt = c.isCurrency
     ? `<span class="rp-pembanding">Rp</span>${FMT_FULL(c.prev || 0)}`
     : `${FMT_FULL(c.prev || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
-
-  // Pembanding anggaran value
-  const prevBudgetFmt = c.isCurrency
-    ? `<span class="rp-anggaran" style="color:var(--anggaran); opacity:0.8;">Rp</span>${FMT_FULL(c.prevBudget || 0)}`
-    : `${FMT_FULL(c.prevBudget || 0)} <span class="kpi-unit">${c.unit || ''}</span>`;
 
   // Anggaran block (gaya PDA: label + value + pencapaian)
   const anggaranBlock = (hasBudget && showBudget) ? `
@@ -1106,20 +1090,12 @@ function renderKPICard(c) {
       <div class="kpi-mini-compare">${achievementHTML(c.curr, c.budget)}<span class="kpi-vs">pencapaian</span></div>
     </div>` : '';
 
-  // Pembanding realisasi block
-  const pembandingBlock = (showCompare && showReal) ? `
+  // Pembanding block (gaya PDA: label + value + delta)
+  const pembandingBlock = showCompare ? `
     <div class="kpi-secondary-block kpi-pembanding-block">
-      <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding Realisasi</div>
+      <div class="kpi-secondary-label"><span class="dot pembanding"></span>Pembanding</div>
       <div class="kpi-secondary-val">${prevFmt}</div>
       <div class="kpi-mini-compare">${deltaHTML(pct(c.curr, c.prev))}<span class="kpi-vs">vs pembanding</span></div>
-    </div>` : '';
-
-  // Pembanding anggaran block
-  const prevBudgetBlock = (showCompare && showBudget && hasPrevBudget) ? `
-    <div class="kpi-secondary-block kpi-pembanding-anggaran-block">
-      <div class="kpi-secondary-label"><span class="dot pembanding-anggaran"></span>Pembanding Anggaran</div>
-      <div class="kpi-secondary-val">${prevBudgetFmt}</div>
-      <div class="kpi-mini-compare">${achievementHTML(c.prev, c.prevBudget)}<span class="kpi-vs">vs pembanding</span></div>
     </div>` : '';
 
   // Jika user matikan "Realisasi" — swap main value ke Anggaran
@@ -1131,7 +1107,7 @@ function renderKPICard(c) {
       <div class="kpi-card ${c.cls || ''}">
         <div class="kpi-label">${c.label} <span style="color:var(--anggaran);font-weight:700;">· ANGGARAN</span></div>
         <div class="kpi-value">${budgetAsMain}</div>
-        ${prevBudgetBlock || pembandingBlock}
+        ${pembandingBlock}
       </div>`;
   }
 
@@ -1141,7 +1117,6 @@ function renderKPICard(c) {
       <div class="kpi-value">${mainFmt}</div>
       ${anggaranBlock}
       ${pembandingBlock}
-      ${prevBudgetBlock}
     </div>`;
 }
 
@@ -1162,23 +1137,20 @@ function renderOverview() {
   const totalPengCur = sumMetric(cur, 'pengTotal') || (sumMetric(cur, 'pengBayar') + sumMetric(cur, 'pengTidakBayar'));
   const totalPengCmp = sumMetric(cmp, 'pengTotal') || (sumMetric(cmp, 'pengBayar') + sumMetric(cmp, 'pengTidakBayar'));
   const totalPengBdg = sumMetric(cur, 'pengTotal_b');
-  const totalPengCmpBdg = sumMetric(cmp, 'pengTotal_b');
   const totalRevCur = sumMetric(cur, 'rev');
   const totalRevCmp = sumMetric(cmp, 'rev');
   const totalRevBdg = sumMetric(cur, 'rev_b');
-  const totalRevCmpBdg = sumMetric(cmp, 'rev_b');
   const arpuCur = totalPengCur > 0 ? totalRevCur / totalPengCur : 0;
   const arpuCmp = totalPengCmp > 0 ? totalRevCmp / totalPengCmp : 0;
   const arpuBdg = totalPengBdg > 0 ? totalRevBdg / totalPengBdg : 0;
-  const arpuCmpBdg = totalPengCmpBdg > 0 ? totalRevCmpBdg / totalPengCmpBdg : 0;
   const days = Math.max(1, daysBetween(ISOToDate(state.cur.start), ISOToDate(state.cur.end)) + 1);
   const daysCmp = Math.max(1, daysBetween(ISOToDate(state.cmp.start || state.cur.start), ISOToDate(state.cmp.end || state.cur.end)) + 1);
 
   const cards = [
-    { cls: '', label: 'TOTAL PENGUNJUNG', curr: totalPengCur, prev: state.cmp.enabled ? totalPengCmp : null, prevBudget: state.cmp.enabled ? totalPengCmpBdg : null, budget: totalPengBdg || null, isCurrency: false, unit: 'orang' },
-    { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: totalRevCur, prev: state.cmp.enabled ? totalRevCmp : null, prevBudget: state.cmp.enabled ? totalRevCmpBdg : null, budget: totalRevBdg || null, isCurrency: true },
-    { cls: 'amber', label: 'ARPU (Avg Revenue/Visitor)', curr: arpuCur, prev: state.cmp.enabled ? arpuCmp : null, prevBudget: state.cmp.enabled ? arpuCmpBdg : null, budget: arpuBdg || null, isCurrency: true },
-    { cls: 'green', label: 'AVG PENGUNJUNG/HARI', curr: totalPengCur / days, prev: state.cmp.enabled ? totalPengCmp / daysCmp : null, prevBudget: state.cmp.enabled ? (totalPengCmpBdg ? totalPengCmpBdg / daysCmp : null) : null, budget: totalPengBdg ? totalPengBdg / days : null, isCurrency: false, unit: 'orang/hari' },
+    { cls: '', label: 'TOTAL PENGUNJUNG', curr: totalPengCur, prev: state.cmp.enabled ? totalPengCmp : null, budget: totalPengBdg || null, isCurrency: false, unit: 'orang' },
+    { cls: 'deep', label: 'TOTAL PENDAPATAN', curr: totalRevCur, prev: state.cmp.enabled ? totalRevCmp : null, budget: totalRevBdg || null, isCurrency: true },
+    { cls: 'amber', label: 'ARPU (Avg Revenue/Visitor)', curr: arpuCur, prev: state.cmp.enabled ? arpuCmp : null, budget: arpuBdg || null, isCurrency: true },
+    { cls: 'green', label: 'AVG PENGUNJUNG/HARI', curr: totalPengCur / days, prev: state.cmp.enabled ? totalPengCmp / daysCmp : null, budget: totalPengBdg ? totalPengBdg / days : null, isCurrency: false, unit: 'orang/hari' },
   ];
   document.getElementById('overviewKpi').innerHTML = cards.map(renderKPICard).join('');
 
@@ -1257,13 +1229,11 @@ function renderPengunjungKpi() {
   const cur = filterRange(state.cur.start, state.cur.end);
   const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
   const b = key => sumMetric(cur, key + '_b') || null;
-  const pb = key => sumMetric(cmp, key + '_b') || null;
   const cards = [
-    { cls: '',     label: 'A. INDIVIDU',            curr: sumMetric(cur, 'pengIndividu'),   prev: state.cmp.enabled ? sumMetric(cmp, 'pengIndividu')   : null, prevBudget: state.cmp.enabled ? pb('pengIndividu')   : null, budget: b('pengIndividu'),   unit: 'orang' },
-    { cls: 'deep', label: 'B. ROMB JABODETABEK',    curr: sumMetric(cur, 'pengJabodetabek'),prev: state.cmp.enabled ? sumMetric(cmp, 'pengJabodetabek'):null, prevBudget: state.cmp.enabled ? pb('pengJabodetabek'): null, budget: b('pengJabodetabek'),unit: 'orang' },
-    { cls: 'green',label: 'C. ROMB AGEN DAERAH',    curr: sumMetric(cur, 'pengAgenDaerah'), prev: state.cmp.enabled ? sumMetric(cmp, 'pengAgenDaerah') : null, prevBudget: state.cmp.enabled ? pb('pengAgenDaerah') : null, budget: b('pengAgenDaerah'), unit: 'orang' },
-    { cls: '',     label: 'D. ROMB DIRECT LUAR',    curr: sumMetric(cur, 'pengDirect'),     prev: state.cmp.enabled ? sumMetric(cmp, 'pengDirect')     : null, prevBudget: state.cmp.enabled ? pb('pengDirect')     : null, budget: b('pengDirect'),     unit: 'orang' },
-    { cls: 'amber',label: 'E. TIDAK BAYAR',         curr: sumMetric(cur, 'pengTidakBayar'), prev: state.cmp.enabled ? sumMetric(cmp, 'pengTidakBayar') : null, prevBudget: state.cmp.enabled ? pb('pengTidakBayar') : null, budget: b('pengTidakBayar'), unit: 'orang' },
+    { cls: '',     label: 'A. INDIVIDU',          curr: sumMetric(cur, 'pengIndividu'),    prev: state.cmp.enabled ? sumMetric(cmp, 'pengIndividu')    : null, budget: b('pengIndividu'),    unit: 'orang' },
+    { cls: 'deep', label: 'B. ROMB LANGSUNG',     curr: sumMetric(cur, 'pengRombLangsung'),prev: state.cmp.enabled ? sumMetric(cmp, 'pengRombLangsung'): null, budget: b('pengRombLangsung'),unit: 'orang' },
+    { cls: 'green',label: 'C. ROMB AGEN',         curr: sumMetric(cur, 'pengAgenDaerah'),  prev: state.cmp.enabled ? sumMetric(cmp, 'pengAgenDaerah')  : null, budget: b('pengAgenDaerah'),  unit: 'orang' },
+    { cls: 'amber',label: 'D. TIDAK BAYAR',       curr: sumMetric(cur, 'pengTidakBayar'),  prev: state.cmp.enabled ? sumMetric(cmp, 'pengTidakBayar')  : null, budget: b('pengTidakBayar'),  unit: 'orang' },
   ];
   document.getElementById('pengunjungKpi').innerHTML = cards.map(renderKPICard).join('');
 }
@@ -1332,9 +1302,9 @@ function renderPengunjungPie() {
   const cur = filterRange(state.cur.start, state.cur.end);
   const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
   const showCmp = state.cmp.enabled && cmp.length > 0;
-  const KEYS   = ['pengIndividu', 'pengJabodetabek', 'pengAgenDaerah', 'pengDirect', 'pengTidakBayar'];
-  const LABELS = ['A. Individu', 'B. Romb Jabodetabek', 'C. Romb Agen Daerah', 'D. Romb Direct Luar', 'E. Tidak Bayar'];
-  const COLORS = ['#0194F3', '#0064D2', '#4FB4FF', '#9FD6FF', '#F59E0B'];
+  const KEYS   = ['pengIndividu', 'pengRombLangsung', 'pengAgenDaerah', 'pengTidakBayar'];
+  const LABELS = ['A. Individu', 'B. Romb Langsung', 'C. Romb Agen', 'D. Tidak Bayar'];
+  const COLORS = ['#0194F3', '#0064D2', '#4FB4FF', '#F59E0B'];
   const dataCur = KEYS.map(k => sumMetric(cur, k));
   const dataCmp = showCmp ? KEYS.map(k => sumMetric(cmp, k)) : null;
   const totalCur = dataCur.reduce((a,b) => a+b, 0);
@@ -1404,27 +1374,32 @@ function renderPengunjungPie() {
 
 function renderTopTiketIndividu() {
   const cur = filterRange(state.cur.start, state.cur.end);
-  // Semua item Individu JBL — diurutkan dan ambil top 10
+  // Item Individu Samudra — sortir & ambil top 10
   const items = [
-    { label: 'Reguler tanpa Ancol',         key: 'pengReg' },
-    { label: 'Bonus Reguler SWA & ODS',     key: 'pengBonusSwaOds' },
+    { label: 'Tiket Individu',              key: 'pengTiketIndividu' },
+    { label: 'Tiket Harga Khusus',          key: 'pengTiketHargaKhusus' },
+    { label: 'Tiket ODS Bonus JBL',         key: 'pengTiketOdsBonusJbl' },
+    { label: 'Bundling ODS-SWA',            key: 'pengBundOdsSwa' },
+    { label: 'Bundling SWA-ODS',            key: 'pengBundSwaOds' },
     { label: 'Bundling JBL-ODS',            key: 'pengBundJblOds' },
-    { label: 'Bundling ODS-JBL',            key: 'pengBundOdsJbl' },
-    { label: 'Bundling ODS-SWA-JBL',        key: 'pengBundOdsSwaJbl' },
-    { label: 'Bundling JBL-SWA',            key: 'pengBundJblSwa' },
-    { label: 'Bundling SWA-ODS-JBL',        key: 'pengBundSwaOdsJbl' },
+    { label: 'Bundling SWA-JBL-ODS',        key: 'pengBundSwaJblOds' },
     { label: 'Bundling JBL-SWA-ODS',        key: 'pengBundJblSwaOds' },
-    { label: 'Bundling AWA-JBL',            key: 'pengBundAwaJbl' },
-    { label: 'Bonus Dufan 0 JBL',           key: 'pengBonusDufanJbl' },
+    { label: 'Bundling ODS-SWA-JBL',        key: 'pengBundOdsSwaJbl' },
+    { label: 'Bundling JBL-ODS-SWA-DUFAN',  key: 'pengBundJblOdsSwaDufan' },
+    { label: 'Bundling ODS-AWA',            key: 'pengBundOdsAwa' },
+    { label: 'Bundling ODS-DUFAN',          key: 'pengBundOdsDufan' },
+    { label: 'Bundling DUFAN-ODS',          key: 'pengBundDufanOds' },
+    { label: 'Tiket FUN PASS',              key: 'pengFunPass' },
     { label: 'Bundling dr PDA',             key: 'pengBundPda' },
-    { label: '(Foreigner) Reguler',         key: 'pengFrReg' },
-    { label: '(Foreigner) AWA-JBL',         key: 'pengFrAwaJbl' },
     { label: 'Tiket PDA',                   key: 'pengPda' },
-    { label: 'Reguler Promo',               key: 'pengRegPromo' },
-    { label: 'Annual Pass ODS 0 JBL',       key: 'pengAnnualPassOds' },
-    { label: 'Promo Sosmed/Ecomerce',       key: 'pengPromoSosmed' },
-    { label: 'Paket Family',                key: 'pengPaketFamily' },
-    { label: 'Tiket Online/Promo',          key: 'pengTiketOnline' },
+    { label: 'Member Dolphi',               key: 'pengMemberDolphi' },
+    { label: 'Annual Pass SWA-ODS',         key: 'pengAnnualPass' },
+    { label: 'Foreigner Tiket Reguler',     key: 'pengFrTiket' },
+    { label: 'Foreigner ODS Bonus JBL',     key: 'pengFrOdsBonusJbl' },
+    { label: 'Foreigner JBL Bonus ODS',     key: 'pengFrJblBonusOds' },
+    { label: 'E-Commerce',                  key: 'pengEcommerce' },
+    { label: 'Promo Family',                key: 'pengPromoFamily' },
+    { label: 'Ancol.Com',                   key: 'pengAncolCom' },
   ];
   const data = items.map(it => ({ label: it.label, value: sumMetric(cur, it.key) }))
                    .filter(d => d.value > 0)
@@ -1489,13 +1464,12 @@ function renderPendapatanKpi() {
   const cur = filterRange(state.cur.start, state.cur.end);
   const cmp = state.cmp.enabled ? filterRange(state.cmp.start, state.cmp.end) : [];
   const b = key => sumMetric(cur, key + '_b') || null;
-  const pb = key => sumMetric(cmp, key + '_b') || null;
   const cards = [
-    { cls: 'deep',  label: 'TOTAL PENDAPATAN',   curr: sumMetric(cur, 'rev'),         prev: state.cmp.enabled ? sumMetric(cmp, 'rev')         : null, prevBudget: state.cmp.enabled ? pb('rev')         : null, budget: b('rev'),        isCurrency: true },
-    { cls: '',      label: 'PENDAPATAN INPARK',  curr: sumMetric(cur, 'revInpark'),   prev: state.cmp.enabled ? sumMetric(cmp, 'revInpark')   : null, prevBudget: state.cmp.enabled ? pb('revInpark')   : null, budget: b('revInpark'),  isCurrency: true },
-    { cls: '',      label: 'PENDAPATAN TIKET',   curr: sumMetric(cur, 'revTiket'),    prev: state.cmp.enabled ? sumMetric(cmp, 'revTiket')    : null, prevBudget: state.cmp.enabled ? pb('revTiket')    : null, budget: b('revTiket'),   isCurrency: true },
-    { cls: 'amber', label: 'INPARK REVENUE',     curr: sumMetric(cur, 'revInpark'),   prev: state.cmp.enabled ? sumMetric(cmp, 'revInpark')   : null, prevBudget: state.cmp.enabled ? pb('revInpark')   : null, budget: b('revInpark'),    isCurrency: true },
-    { cls: 'green', label: 'SERVICE CHARGE',     curr: sumMetric(cur, 'usaService'),  prev: state.cmp.enabled ? sumMetric(cmp, 'usaService')  : null, prevBudget: state.cmp.enabled ? pb('usaService')  : null, budget: b('usaService'), isCurrency: true },
+    { cls: 'deep',  label: 'TOTAL PENDAPATAN',   curr: sumMetric(cur, 'rev'),         prev: state.cmp.enabled ? sumMetric(cmp, 'rev')         : null, budget: b('rev'),        isCurrency: true },
+    { cls: '',      label: 'PENDAPATAN INPARK',  curr: sumMetric(cur, 'revInpark'),   prev: state.cmp.enabled ? sumMetric(cmp, 'revInpark')   : null, budget: b('revInpark'),  isCurrency: true },
+    { cls: '',      label: 'PENDAPATAN TIKET',   curr: sumMetric(cur, 'revTiket'),    prev: state.cmp.enabled ? sumMetric(cmp, 'revTiket')    : null, budget: b('revTiket'),   isCurrency: true },
+    { cls: 'amber', label: 'INPARK REVENUE',     curr: sumMetric(cur, 'revInpark'),   prev: state.cmp.enabled ? sumMetric(cmp, 'revInpark')   : null, budget: b('revInpark'),    isCurrency: true },
+    { cls: 'green', label: 'SERVICE CHARGE',     curr: sumMetric(cur, 'usaService'),  prev: state.cmp.enabled ? sumMetric(cmp, 'usaService')  : null, budget: b('usaService'), isCurrency: true },
   ];
   document.getElementById('pendapatanKpi').innerHTML = cards.map(renderKPICard).join('');
 }
@@ -1632,16 +1606,21 @@ function renderPendapatanPie() {
 }
 
 function renderPenyewaanBar() {
-  // Renamed semantically untuk JBL: Inpark Revenue breakdown (7 items)
+  // Inpark Revenue breakdown — 12 item Samudra
   const cur = filterRange(state.cur.start, state.cur.end);
   const items = [
-    { label: '1. Feeding Bird',          key: 'inpFeeding' },
-    { label: '2. Interactive With Birds',key: 'inpInteractive' },
-    { label: '3. In House Program',      key: 'inpInHouse' },
-    { label: '4. Service Charge',        key: 'inpService' },
-    { label: '5. Pendapatan Acara',      key: 'inpAcara' },
-    { label: '6. Sewa Lahan',            key: 'inpSewa' },
-    { label: '7. Rupa-Rupa',             key: 'inpRupa' },
+    { label: '1. Sewa Lahan',            key: 'inpSewaLahan' },
+    { label: '2. Air Laut',              key: 'inpAirLaut' },
+    { label: '3. Kiddy Fun',             key: 'inpKiddyFun' },
+    { label: '4. Perfect Relax',         key: 'inpPerfectRelax' },
+    { label: '5. Scooter',               key: 'inpScooter' },
+    { label: '6. Face Painting & Tattoo',key: 'inpFacePaint' },
+    { label: '7. Play Land',             key: 'inpPlayLand' },
+    { label: '8. Rainforest',            key: 'inpRainforest' },
+    { label: '9. Play On VR',            key: 'inpPlayOnVR' },
+    { label: '10. Pendapatan Acara',     key: 'inpAcara' },
+    { label: '11. Service Charge Tenant',key: 'inpService' },
+    { label: '12. Rupa-Rupa',            key: 'inpRupa' },
   ];
   const data = items.map(it => ({ label: it.label, value: sumMetric(cur, it.key) }))
                    .sort((a,b) => b.value - a.value);
@@ -1662,7 +1641,7 @@ function renderPenyewaanBar() {
       },
       scales: {
         x: { grid: { color: '#E3E3ED' }, ticks: { callback: v => 'Rp ' + FMT_COMPACT(v) } },
-        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
       }
     }
   });
@@ -1719,146 +1698,148 @@ function buildDataTables() {
   const showCmp = state.cmp.enabled && cmp.length > 0;
   const showBudget = state.display.budget;
 
-  // Struktur mengikuti format LH JBL (Screenshot 11-21-38 visitor & 11-22-06 revenue).
-  // Hirarki: I/II = section, A/B/C/D/E = subsection, item-level di bawahnya.
+  // Struktur mengikuti format LH Samudra (screenshot 15-13-08 & 15-14-24).
+  // Hirarki: I/II = section, A/B/C/D = subsection.
+  // Catatan: Revenue Individu punya sub-group "Tiket Penyewaan" (6 item dolphin/feeding experiences).
   const rows = [
     { type: 'header', label: 'I. VISITOR (PENGUNJUNG)' },
     // I.A — Individu
     { type: 'group', code: 'A.', label: 'Individu' },
-    { type: 'item', no: 1,  key: 'pengReg' },
-    { type: 'item', no: 2,  key: 'pengBonusSwaOds' },
-    { type: 'item', no: 3,  key: 'pengBundJblOds' },
-    { type: 'item', no: 4,  key: 'pengBundOdsJbl' },
-    { type: 'item', no: 5,  key: 'pengBundOdsSwaJbl' },
-    { type: 'item', no: 6,  key: 'pengBundJblSwa' },
-    { type: 'item', no: 7,  key: 'pengBundSwaOdsJbl' },
+    { type: 'item', no: 1,  key: 'pengTiketIndividu' },
+    { type: 'item', no: 2,  key: 'pengTiketHargaKhusus' },
+    { type: 'item', no: 3,  key: 'pengTiketOdsBonusJbl' },
+    { type: 'item', no: 4,  key: 'pengBundOdsSwa' },
+    { type: 'item', no: 5,  key: 'pengBundSwaOds' },
+    { type: 'item', no: 6,  key: 'pengBundJblOds' },
+    { type: 'item', no: 7,  key: 'pengBundSwaJblOds' },
     { type: 'item', no: 8,  key: 'pengBundJblSwaOds' },
-    { type: 'item', no: 9,  key: 'pengBundAwaJbl' },
-    { type: 'item', no: 10, key: 'pengBonusDufanJbl' },
-    { type: 'item', no: 11, key: 'pengBundPda' },
-    { type: 'item', no: 12, key: 'pengFrReg' },
-    { type: 'item', no: 13, key: 'pengFrJblOds' },
-    { type: 'item', no: 14, key: 'pengFrJblSwa' },
-    { type: 'item', no: 15, key: 'pengFrOdsJbl' },
-    { type: 'item', no: 16, key: 'pengFrSwaJbl' },
-    { type: 'item', no: 17, key: 'pengFrJblSwaOds' },
-    { type: 'item', no: 18, key: 'pengFrOdsSwaJbl' },
-    { type: 'item', no: 19, key: 'pengFrSwaOdsJbl' },
-    { type: 'item', no: 20, key: 'pengFrAwaJbl' },
-    { type: 'item', no: 21, key: 'pengPda' },
-    { type: 'item', no: 22, key: 'pengRegPromo' },
-    { type: 'item', no: 23, key: 'pengAnnualPassOds' },
-    { type: 'item', no: 24, key: 'pengPromoSosmed' },
-    { type: 'item', no: 25, key: 'pengPaketFamily' },
-    { type: 'item', no: 26, key: 'pengTiketOnline' },
+    { type: 'item', no: 9,  key: 'pengBundOdsSwaJbl' },
+    { type: 'item', no: 10, key: 'pengBundJblOdsSwaDufan' },
+    { type: 'item', no: 11, key: 'pengBundOdsAwa' },
+    { type: 'item', no: 12, key: 'pengBundOdsDufan' },
+    { type: 'item', no: 13, key: 'pengBundDufanOds' },
+    { type: 'item', no: 14, key: 'pengFunPass' },
+    { type: 'item', no: 15, key: 'pengBundPda' },
+    { type: 'item', no: 16, key: 'pengPda' },
+    { type: 'item', no: 17, key: 'pengMemberDolphi' },
+    { type: 'item', no: 18, key: 'pengAnnualPass' },
+    { type: 'item', no: 19, key: 'pengFrTiket' },
+    { type: 'item', no: 20, key: 'pengFrOdsBonusJbl' },
+    { type: 'item', no: 21, key: 'pengFrJblBonusOds' },
+    { type: 'item', no: 22, key: 'pengFrBundOdsSwa' },
+    { type: 'item', no: 23, key: 'pengFrBundSwaOds' },
+    { type: 'item', no: 24, key: 'pengFrBundOdsJblSwa' },
+    { type: 'item', no: 25, key: 'pengFrBundSwaOdsJbl' },
+    { type: 'item', no: 26, key: 'pengFrBundJblOdsSwa' },
+    { type: 'item', no: 27, key: 'pengFrBundDufanOds' },
+    { type: 'item', no: 28, key: 'pengFrAnnualSamudra' },
+    { type: 'item', no: 29, key: 'pengFrAnnualSWSamudra' },
+    { type: 'item', no: 30, key: 'pengEcommerce' },
+    { type: 'item', no: 31, key: 'pengPromoFamily' },
+    { type: 'item', no: 32, key: 'pengAncolCom' },
     { type: 'sub',  key: 'pengIndividu', codeLeft: 'Total A' },
-    // I.B — Rombongan Jabodetabek
-    { type: 'group', code: 'B.', label: 'Rombongan Jabodetabek' },
-    { type: 'item', no: 1, key: 'pengJabRegUmum' },
-    { type: 'item', no: 2, key: 'pengJabRegPelajar' },
-    { type: 'item', no: 3, key: 'pengJabRegUmumBund' },
-    { type: 'item', no: 4, key: 'pengJabRegPelajarBund' },
-    { type: 'sub',  key: 'pengJabodetabek', codeLeft: 'Total B' },
-    // I.C — Rombongan Agen Daerah
-    { type: 'group', code: 'C.', label: 'Rombongan Agen Daerah' },
-    { type: 'item', no: 1, key: 'pengAgUmum' },
-    { type: 'item', no: 2, key: 'pengAgPelajar' },
-    { type: 'item', no: 3, key: 'pengAgUmumBund' },
-    { type: 'item', no: 4, key: 'pengAgPelajarBund' },
+    // I.B — Rombongan Langsung
+    { type: 'group', code: 'B.', label: 'Rombongan Langsung' },
+    { type: 'item', no: 1, key: 'pengRlPelajar' },
+    { type: 'item', no: 2, key: 'pengRlUmum' },
+    { type: 'item', no: 3, key: 'pengRlOnline' },
+    { type: 'sub',  key: 'pengRombLangsung', codeLeft: 'Total B' },
+    // I.C — Rombongan Agen
+    { type: 'group', code: 'C.', label: 'Rombongan Agen' },
+    { type: 'item', no: 1, key: 'pengRaPelajar' },
+    { type: 'item', no: 2, key: 'pengRaUmum' },
     { type: 'sub',  key: 'pengAgenDaerah', codeLeft: 'Total C' },
-    // I.D — Rombongan Direct Luar Jabodetabek
-    { type: 'group', code: 'D.', label: 'Rombongan Direct Luar Jabodetabek' },
-    { type: 'item', no: 1, key: 'pengDrUmum' },
-    { type: 'item', no: 2, key: 'pengDrPelajar' },
-    { type: 'item', no: 3, key: 'pengDrUmumBund' },
-    { type: 'item', no: 4, key: 'pengDrPelajarBund' },
-    { type: 'sub',  key: 'pengAgenLuarSubtotal', codeLeft: 'Total C+D', labelOverride: 'Total Romb Agen Daerah + Luar Jabodetabek' },
-    { type: 'sub',  key: 'pengRombongan',        codeLeft: 'B+C+D',     labelOverride: 'Total Rombongan' },
-    { type: 'sub',  key: 'pengBayar',            codeLeft: 'A+B+C+D',   labelOverride: 'Total Individu + Rombongan' },
-    // I.E — Tidak Bayar
-    { type: 'group', code: 'E.', label: 'Pengunjung Tidak Bayar' },
-    { type: 'item', no: 1, key: 'tbRepeaterJbl' },
-    { type: 'item', no: 2, key: 'tbRepeaterJblOds' },
-    { type: 'item', no: 3, key: 'tbRepeaterJblSwa' },
+    { type: 'sub',  key: 'pengRombongan',  codeLeft: 'B+C',   labelOverride: 'JUMLAH PENGUNJUNG ROMBONGAN' },
+    { type: 'sub',  key: 'pengBayar',      codeLeft: 'A+B+C', labelOverride: 'JUMLAH PENGUNJUNG BAYAR' },
+    // I.D — Pengunjung Tidak Bayar
+    { type: 'group', code: 'D.', label: 'Pengunjung Tidak Bayar' },
+    { type: 'item', no: 1, key: 'tbRepDolphi' },
+    { type: 'item', no: 2, key: 'tbRepSwaOds' },
+    { type: 'item', no: 3, key: 'tbRepFunPass' },
     { type: 'item', no: 4, key: 'tbRk' },
-    { type: 'sub',  key: 'pengTidakBayar', codeLeft: 'Total E' },
-    { type: 'total', key: 'pengTotal', labelOverride: 'TOTAL PENGUNJUNG (incl. Tidak Bayar)' },
+    { type: 'sub',  key: 'pengTidakBayar', codeLeft: 'Total D' },
+    { type: 'total', key: 'pengTotal', labelOverride: 'TOTAL PENGUNJUNG (A+B+C+D)' },
 
     { type: 'header', label: 'II. REVENUE (PENDAPATAN)' },
-    // II.A — Individu Revenue
+    // II.A — Individu (regular + bundling + foreigner + e-commerce)
     { type: 'group', code: 'A.', label: 'Individu' },
-    { type: 'item', no: 1,  key: 'revReg' },
-    { type: 'item', no: 2,  key: 'revBonusSwaOds' },
-    { type: 'item', no: 3,  key: 'revBundJblOds' },
-    { type: 'item', no: 4,  key: 'revBundOdsJbl' },
-    { type: 'item', no: 5,  key: 'revBundOdsSwaJbl' },
-    { type: 'item', no: 6,  key: 'revBundJblSwa' },
-    { type: 'item', no: 7,  key: 'revBundSwaOdsJbl' },
-    { type: 'item', no: 8,  key: 'revBundJblSwaOds' },
-    { type: 'item', no: 9,  key: 'revBundAwaJbl' },
-    { type: 'item', no: 10, key: 'revBonusDufanJbl' },
-    { type: 'item', no: 11, key: 'revBundPda' },
-    { type: 'item', no: 12, key: 'revFrReg' },
-    { type: 'item', no: 13, key: 'revFrJblOds' },
-    { type: 'item', no: 14, key: 'revFrJblSwa' },
-    { type: 'item', no: 15, key: 'revFrOdsJbl' },
-    { type: 'item', no: 16, key: 'revFrSwaJbl' },
-    { type: 'item', no: 17, key: 'revFrJblSwaOds' },
-    { type: 'item', no: 18, key: 'revFrOdsSwaJbl' },
-    { type: 'item', no: 19, key: 'revFrSwaOdsJbl' },
-    { type: 'item', no: 20, key: 'revFrAwaJbl' },
-    { type: 'item', no: 21, key: 'revPda' },
-    { type: 'item', no: 22, key: 'revPermainan' },
-    { type: 'item', no: 23, key: 'revRegPromo' },
-    { type: 'item', no: 24, key: 'revPromoSosmed' },
-    { type: 'item', no: 25, key: 'revPaketFamily' },
-    { type: 'item', no: 26, key: 'revTiketOnline' },
+    { type: 'item', no: 1,  key: 'revTiketIndividu' },
+    { type: 'item', no: 2,  key: 'revTiketHargaKhusus' },
+    { type: 'item', no: 3,  key: 'revTiketOdsBonusJbl' },
+    { type: 'item', no: 4,  key: 'revBundOdsSwa' },
+    { type: 'item', no: 5,  key: 'revBundSwaOds' },
+    { type: 'item', no: 6,  key: 'revBundJblOds' },
+    { type: 'item', no: 7,  key: 'revBundSwaJblOds' },
+    { type: 'item', no: 8,  key: 'revBundJblOdsSwaDufan' },
+    { type: 'item', no: 9,  key: 'revBundOdsSwaJbl' },
+    { type: 'item', no: 10, key: 'revBundJblSwaOds' },
+    { type: 'item', no: 11, key: 'revBundOdsAwa' },
+    { type: 'item', no: 12, key: 'revBundOdsDufan' },
+    { type: 'item', no: 13, key: 'revBundDufanOds' },
+    { type: 'item', no: 14, key: 'revFunPass' },
+    { type: 'item', no: 15, key: 'revBundPda' },
+    { type: 'item', no: 16, key: 'revPda' },
+    { type: 'item', no: 17, key: 'revMemberDolphi' },
+    { type: 'item', no: 18, key: 'revAnnualPass' },
+    { type: 'item', no: 19, key: 'revFrTiket' },
+    { type: 'item', no: 20, key: 'revFrOdsBonusJbl' },
+    { type: 'item', no: 21, key: 'revFrJblBonusOds' },
+    { type: 'item', no: 22, key: 'revFrBundOdsSwa' },
+    { type: 'item', no: 23, key: 'revFrBundSwaOds' },
+    { type: 'item', no: 24, key: 'revFrBundOdsJblSwa' },
+    { type: 'item', no: 25, key: 'revFrBundSwaOdsJbl' },
+    { type: 'item', no: 26, key: 'revFrBundJblOdsSwa' },
+    { type: 'item', no: 27, key: 'revFrBundDufanOds' },
+    { type: 'item', no: 28, key: 'revFrAnnualSamudra' },
+    { type: 'item', no: 29, key: 'revFrAnnualSWSamudra' },
+    { type: 'item', no: 30, key: 'revEcommerce' },
+    { type: 'item', no: 31, key: 'revPromoFamily' },
+    { type: 'item', no: 32, key: 'revAncolCom' },
+    // Sub-group: Tiket Penyewaan (dolphin/feeding experiences — revenue side only)
+    { type: 'sub_head', label: 'Tiket Penyewaan' },
+    { type: 'item', no: 1, key: 'revPenyInteract' },
+    { type: 'item', no: 2, key: 'revPenyFeedingDolphin' },
+    { type: 'item', no: 3, key: 'revPenyFeedingAlpaca' },
+    { type: 'item', no: 4, key: 'revPenyFeedingBurung' },
+    { type: 'item', no: 5, key: 'revPenyFeedingRusa' },
+    { type: 'item', no: 6, key: 'revPenyPaket' },
     { type: 'sub',  key: 'revIndividu', codeLeft: 'Total A' },
-    // II.B — Romb Jabodetabek Revenue
-    { type: 'group', code: 'B.', label: 'Rombongan Jabodetabek' },
-    { type: 'item', no: 1, key: 'revJabRegUmum' },
-    { type: 'item', no: 2, key: 'revJabRegPelajar' },
-    { type: 'item', no: 3, key: 'revJabRegUmumBund' },
-    { type: 'item', no: 4, key: 'revJabRegPelajarBund' },
-    { type: 'sub',  key: 'revJabodetabek', codeLeft: 'Total B' },
-    // II.C — Romb Agen Daerah Revenue
-    { type: 'group', code: 'C.', label: 'Rombongan Agen Daerah' },
-    { type: 'item', no: 1, key: 'revAgUmum' },
-    { type: 'item', no: 2, key: 'revAgPelajar' },
-    { type: 'item', no: 3, key: 'revAgUmumBund' },
-    { type: 'item', no: 4, key: 'revAgPelajarBund' },
+    // II.B — Pendapatan Rombongan Langsung
+    { type: 'group', code: 'B.', label: 'Pendapatan Rombongan Langsung' },
+    { type: 'item', no: 1, key: 'revRlPelajar' },
+    { type: 'item', no: 2, key: 'revRlUmum' },
+    { type: 'item', no: 3, key: 'revRlOnline' },
+    { type: 'sub',  key: 'revRombLangsung', codeLeft: 'Total B' },
+    // II.C — Pendapatan Rombongan Agen
+    { type: 'group', code: 'C.', label: 'Pendapatan Rombongan Agen' },
+    { type: 'item', no: 1, key: 'revRaPelajar' },
+    { type: 'item', no: 2, key: 'revRaUmum' },
     { type: 'sub',  key: 'revAgenDaerah', codeLeft: 'Total C' },
-    // II.D — Romb Direct Luar Jabodetabek Revenue
-    { type: 'group', code: 'D.', label: 'Rombongan Direct Luar Jabodetabek' },
-    { type: 'item', no: 1, key: 'revDrUmum' },
-    { type: 'item', no: 2, key: 'revDrPelajar' },
-    { type: 'item', no: 3, key: 'revDrUmumBund' },
-    { type: 'item', no: 4, key: 'revDrPelajarBund' },
-    { type: 'sub',  key: 'revAgenLuarSubtotal', codeLeft: 'Total C+D', labelOverride: 'Total Romb Agen Daerah + Luar Jabodetabek' },
-    { type: 'sub',  key: 'revRombongan',        codeLeft: 'B+C+D',     labelOverride: 'Total Rombongan' },
-    { type: 'sub',  key: 'revTiket',            codeLeft: 'A+B+C+D',   labelOverride: 'Total Individu + Rombongan' },
-    // II.E — Inpark Revenue
-    { type: 'group', code: 'E.', label: 'Inpark Revenue' },
-    { type: 'item', no: 1, key: 'inpFeeding' },
-    { type: 'item', no: 2, key: 'inpInteractive' },
-    { type: 'item', no: 3, key: 'inpInHouse' },
-    { type: 'item', no: 4, key: 'inpService' },
-    { type: 'item', no: 5, key: 'inpAcara' },
-    { type: 'item', no: 6, key: 'inpSewa' },
-    { type: 'item', no: 7, key: 'inpRupa' },
-    { type: 'sub',  key: 'revInpark', codeLeft: 'Total E' },
-    { type: 'total', key: 'rev', labelOverride: 'TOTAL REVENUE JBL (A+B+C+D+E)' },
+    { type: 'sub',  key: 'revRombongan',  codeLeft: 'B+C',   labelOverride: 'JUMLAH PENDAPATAN ROMBONGAN' },
+    { type: 'sub',  key: 'revTiket',      codeLeft: 'A+B+C', labelOverride: 'JUMLAH PENDAPATAN TIKET' },
+    // II.D — Inpark Revenue (12 items)
+    { type: 'group', code: 'D.', label: 'Inpark Revenue' },
+    { type: 'item', no: 1,  key: 'inpSewaLahan' },
+    { type: 'item', no: 2,  key: 'inpAirLaut' },
+    { type: 'item', no: 3,  key: 'inpKiddyFun' },
+    { type: 'item', no: 4,  key: 'inpPerfectRelax' },
+    { type: 'item', no: 5,  key: 'inpScooter' },
+    { type: 'item', no: 6,  key: 'inpFacePaint' },
+    { type: 'item', no: 7,  key: 'inpPlayLand' },
+    { type: 'item', no: 8,  key: 'inpRainforest' },
+    { type: 'item', no: 9,  key: 'inpPlayOnVR' },
+    { type: 'item', no: 10, key: 'inpAcara' },
+    { type: 'item', no: 11, key: 'inpService' },
+    { type: 'item', no: 12, key: 'inpRupa' },
+    { type: 'sub',  key: 'revInpark', codeLeft: 'Total D' },
+    { type: 'total', key: 'rev', labelOverride: 'TOTAL REVENUE' },
   ];
 
   function findMetric(k) { return METRICS.find(m => m.key === k); }
 
   const headerCols = ['<th class="dt-akun-head">Bagian</th>', '<th class="dt-label-head">URAIAN</th>', '<th>Realisasi</th>'];
   if (showBudget) { headerCols.push('<th>Anggaran</th>'); headerCols.push('<th>Pencapaian</th>'); }
-  if (showCmp) {
-    headerCols.push('<th>Pembanding Realisasi</th>');
-    if (showBudget) headerCols.push('<th>Pembanding Anggaran</th>');
-    headerCols.push('<th>Δ %</th>');
-  }
+  if (showCmp) { headerCols.push('<th>Pembanding</th>'); headerCols.push('<th>Δ %</th>'); }
   const colspan = headerCols.length;
   const headerRowHTML = `<tr>${headerCols.join('')}</tr>`;
 
@@ -1879,8 +1860,7 @@ function buildDataTables() {
 
     const meta = r.key ? findMetric(r.key) : null;
     const label = r.labelOverride || (meta ? meta.label : r.label) || '';
-    // Revenue items: anggIdx >= 58 → currency
-    const isCur = r.key === 'rev' || r.key === 'pengTotal' ? (r.key === 'rev') : (r.key ? CURRENCY_KEYS.has(r.key) : false);
+    const isCur = r.key ? CURRENCY_KEYS.has(r.key) : false;
     const fmt = v => isCur ? FMT_RP(v) : FMT_NUM(v) + ' orang';
     const cv = r.key ? sumMetric(cur, r.key) : 0;
     const bv = r.key ? sumMetric(cur, r.key + '_b') : 0;
@@ -1909,14 +1889,10 @@ function buildDataTables() {
     }
     if (showCmp) {
       const pv = r.key ? sumMetric(cmp, r.key) : 0;
-      const pvB = showBudget && r.key ? sumMetric(cmp, r.key + '_b') : 0;
       const p = pct(cv, pv);
       const pCls = p == null ? '' : (p >= 0 ? 'pct-up' : 'pct-down');
       const pTxt = p == null ? '—' : (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
       cells.push(`<td>${fmt(pv)}</td>`);
-      if (showBudget) {
-        cells.push(`<td>${pvB > 0 ? fmt(pvB) : '—'}</td>`);
-      }
       cells.push(`<td class="${pCls}">${pTxt}</td>`);
     }
     bodyHTML += `<tr class="${trCls}">${cells.join('')}</tr>`;
@@ -1924,7 +1900,7 @@ function buildDataTables() {
 
   document.getElementById('dataTablesContainer').innerHTML = `
     <div class="dt-wrap">
-      <div class="dt-title">Ringkasan Jakarta Bird Land (JBL)</div>
+      <div class="dt-title">Ringkasan Samudra</div>
       <div class="dt-subtitle">Aggregated values · ${FMT_DATE_SHORT(state.cur.start)} → ${FMT_DATE_SHORT(state.cur.end)}${showCmp ? ' vs ' + FMT_DATE_SHORT(state.cmp.start) + ' → ' + FMT_DATE_SHORT(state.cmp.end) : ''}</div>
       <div class="dt-scroll">
         <table class="dt"><thead>${headerRowHTML}</thead><tbody>${bodyHTML}</tbody></table>
